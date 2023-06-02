@@ -1,0 +1,11 @@
+{
+  "id": "obsidian-halo",
+  "name": "Halo",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Halo's Obsidian integration supports publishing content to Halo sites",
+  "author": "Ryan Wang <i@ryanc.cc>",
+  "authorUrl": "https://github.com/ruibaby",
+  "fundingUrl": "https://obsidian.md/pricing",
+  "isDesktopOnly": false
+}
