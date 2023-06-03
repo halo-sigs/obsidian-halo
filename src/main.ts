@@ -1,4 +1,4 @@
-import { Notice, Plugin, requestUrl } from "obsidian";
+import { Notice, Plugin } from "obsidian";
 import { addHaloIcon } from "./icons";
 import { HaloSettingTab, HaloSetting, DEFAULT_SETTINGS } from "./settings";
 import { HaloRestClient } from "./halo-rest-client";
@@ -12,15 +12,6 @@ export default class HaloPlugin extends Plugin {
     await this.loadSettings();
 
     addHaloIcon();
-
-    requestUrl({
-      url: "http://localhost:8090/apis/api.console.halo.run/v1alpha1/posts",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`admin:admin`).toString("base64")}`,
-      },
-    }).then((response) => {
-      console.log(response);
-    });
 
     this.addRibbonIcon("halo-logo", "Publish to Halo", (evt: MouseEvent) => {
       new Notice("This is a notice!");
