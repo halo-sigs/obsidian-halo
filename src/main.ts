@@ -3,6 +3,8 @@ import { addHaloIcon } from "./icons";
 import { HaloSettingTab, HaloSetting, DEFAULT_SETTINGS } from "./settings";
 import { HaloRestClient } from "./halo-rest-client";
 import { readMatter } from "./utils/yaml";
+import { openSiteSelectionModal } from "./site-selection-modal";
+import { openPostSelectionModal } from "./post-selection-model";
 
 export default class HaloPlugin extends Plugin {
   settings: HaloSetting;
@@ -71,6 +73,21 @@ export default class HaloPlugin extends Plugin {
 
         const client = new HaloRestClient(site);
         await client.pullPost();
+      },
+    });
+
+    this.addCommand({
+      id: "halo-fetch-post",
+      name: "Fetch post from Halo",
+      callback: async () => {
+        const site = await openSiteSelectionModal(this);
+
+        const post = await openPostSelectionModal(this, site);
+
+        console.log(post);
+
+        const client = new HaloRestClient(site);
+        await client.fetchPost(post);
       },
     });
 

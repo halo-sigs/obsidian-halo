@@ -1,4 +1,4 @@
-import { PostRequest } from "@halo-dev/api-client";
+import { ListedPost, PostRequest } from "@halo-dev/api-client";
 import { Notice, requestUrl } from "obsidian";
 import { HaloSite } from "./settings";
 import MarkdownIt from "markdown-it";
@@ -176,5 +176,19 @@ export class HaloRestClient {
 
       new Notice("更新成功");
     }
+  }
+
+  public async fetchPost(post: ListedPost): Promise<void> {
+    const postWithContent = await this.getPost(post.post.metadata.name);
+
+    const modifiedContent = mergeMatter(postWithContent?.content.raw as string, {
+      halo: { site: this.site.url, name: post.post.metadata.name },
+    });
+
+    console.log(modifiedContent);
+
+    const file = await app.vault.create(`${post.post.spec.title}.md`, modifiedContent);
+
+    app.workspace.getLeaf().openFile(file);
   }
 }
