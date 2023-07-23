@@ -23,21 +23,21 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.5",
     "@types/markdown-it": "^12.2.3",
-    "@types/node": "^16.11.6",
-    "@typescript-eslint/eslint-plugin": "5.29.0",
-    "@typescript-eslint/parser": "5.29.0",
+    "@types/node": "^18.17.0",
+    "@typescript-eslint/eslint-plugin": "6.1.0",
+    "@typescript-eslint/parser": "6.1.0",
     "builtin-modules": "3.3.0",
-    "esbuild": "0.17.3",
-    "eslint": "^8.41.0",
+    "esbuild": "0.18.16",
+    "eslint": "^8.45.0",
     "eslint-config-prettier": "^8.8.0",
-    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-prettier": "^5.0.0",
     "obsidian": "latest",
-    "prettier": "^2.8.8",
-    "tslib": "2.4.0",
-    "typescript": "4.7.4"
+    "prettier": "^3.0.0",
+    "tslib": "2.6.0",
+    "typescript": "5.1.6"
   },
   "dependencies": {
-    "@halo-dev/api-client": "^2.5.2",
+    "@halo-dev/api-client": "^2.7.0",
     "gray-matter": "^4.0.3",
     "js-yaml": "^4.1.0",
     "markdown-it": "^13.0.1"
