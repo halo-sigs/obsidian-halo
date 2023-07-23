@@ -1,10 +1,9 @@
 import { PostRequest } from "@halo-dev/api-client";
 import { Notice, requestUrl } from "obsidian";
 import { HaloSite } from "./settings";
-import yaml from "js-yaml";
-import matter from "gray-matter";
 import MarkdownIt from "markdown-it";
 import { randomUUID } from "crypto";
+import { readMatter, mergeMatter } from "./utils/yaml";
 
 export class HaloRestClient {
   private readonly site: HaloSite;
@@ -84,18 +83,7 @@ export class HaloRestClient {
     };
 
     const contentWithMatter = await app.vault.read(activeEditor.file);
-    const { content: raw, data: matterData } = matter(contentWithMatter, {
-      engines: {
-        yaml: {
-          parse: (input: string) => yaml.load(input) as object,
-          stringify: (data: object) => {
-            return yaml.dump(data, {
-              styles: { "!!null": "empty" },
-            });
-          },
-        },
-      },
-    });
+    const { content: raw, data: matterData } = readMatter(contentWithMatter);
 
     if (matterData.halo?.name) {
       const post = await this.getPost(matterData.halo.name);
@@ -136,22 +124,10 @@ export class HaloRestClient {
       headers: this.headers,
     }).json;
 
-    const modifiedContent = matter.stringify(
-      raw,
-      { ...matterData, halo: { name: requestParams.post.metadata.name } },
-      {
-        engines: {
-          yaml: {
-            parse: (input: string) => yaml.load(input) as object,
-            stringify: (data: object) => {
-              return yaml.dump(data, {
-                styles: { "!!null": "empty" },
-              });
-            },
-          },
-        },
-      }
-    );
+    const modifiedContent = mergeMatter(raw, {
+      ...matterData,
+      halo: { site: this.site.url, name: requestParams.post.metadata.name },
+    });
 
     const editor = activeEditor.editor;
     if (editor) {
@@ -164,5 +140,41 @@ export class HaloRestClient {
     }
 
     new Notice("发布成功");
+  }
+
+  public async pullPost(): Promise<void> {
+    const { activeEditor } = app.workspace;
+
+    if (!activeEditor || !activeEditor.file) {
+      return;
+    }
+
+    const contentWithMatter = await app.vault.read(activeEditor.file);
+    const { data: matterData } = readMatter(contentWithMatter);
+
+    if (!matterData.halo?.name) {
+      new Notice("此文档还未发布到 Halo");
+      return;
+    }
+
+    const post = await this.getPost(matterData.halo.name);
+
+    const editor = activeEditor.editor;
+
+    const modifiedContent = mergeMatter(post?.content.raw as string, {
+      ...matterData,
+      halo: { site: this.site.url, name: matterData.halo.name },
+    });
+
+    if (editor) {
+      const { left, top } = editor.getScrollInfo();
+      const position = editor.getCursor();
+
+      editor.setValue(modifiedContent);
+      editor.scrollTo(left, top);
+      editor.setCursor(position);
+
+      new Notice("更新成功");
+    }
   }
 }
