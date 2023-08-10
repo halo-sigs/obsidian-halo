@@ -40,6 +40,7 @@
     "@halo-dev/api-client": "^2.7.0",
     "gray-matter": "^4.0.3",
     "js-yaml": "^4.1.0",
-    "markdown-it": "^13.0.1"
+    "markdown-it": "^13.0.1",
+    "transliteration": "^2.3.5"
   }
 }

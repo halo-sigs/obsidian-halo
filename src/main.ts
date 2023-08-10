@@ -1,10 +1,10 @@
 import { Notice, Plugin } from "obsidian";
 import { addHaloIcon } from "./icons";
 import { HaloSettingTab, HaloSetting, DEFAULT_SETTINGS } from "./settings";
-import { HaloRestClient } from "./halo-rest-client";
 import { readMatter } from "./utils/yaml";
 import { openSiteSelectionModal } from "./site-selection-modal";
 import { openPostSelectionModal } from "./post-selection-model";
+import HaloService from "./service";
 
 export default class HaloPlugin extends Plugin {
   settings: HaloSetting;
@@ -25,8 +25,8 @@ export default class HaloPlugin extends Plugin {
       name: "Publish to Halo",
       callback: async () => {
         const site = this.settings.sites[0];
-        const client = new HaloRestClient(site);
-        await client.publishPost();
+        const service = new HaloService(site);
+        await service.publishPost();
       },
     });
 
@@ -41,14 +41,14 @@ export default class HaloPlugin extends Plugin {
           return;
         }
 
-        const client = new HaloRestClient(site);
-        await client.publishPost();
+        const service = new HaloService(site);
+        await service.publishPost();
       },
     });
 
     this.addCommand({
-      id: "halo-pull-post",
-      name: "Pull post from Halo",
+      id: "halo-update-post",
+      name: "Update post from Halo",
       editorCallback: async () => {
         const { activeEditor } = app.workspace;
 
@@ -71,14 +71,14 @@ export default class HaloPlugin extends Plugin {
           return;
         }
 
-        const client = new HaloRestClient(site);
-        await client.pullPost();
+        const service = new HaloService(site);
+        await service.updatePost();
       },
     });
 
     this.addCommand({
-      id: "halo-fetch-post",
-      name: "Fetch post from Halo",
+      id: "halo-pull-post",
+      name: "Pull post from Halo",
       callback: async () => {
         const site = await openSiteSelectionModal(this);
 
@@ -86,8 +86,8 @@ export default class HaloPlugin extends Plugin {
 
         console.log(post);
 
-        const client = new HaloRestClient(site);
-        await client.fetchPost(post);
+        const service = new HaloService(site);
+        await service.pullPost(post.post.metadata.name);
       },
     });
 
