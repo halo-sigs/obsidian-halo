@@ -83,8 +83,13 @@ class HaloService {
       },
     };
 
-    const contentWithMatter = await app.vault.read(activeEditor.file);
-    const { content: raw, data: matterData } = readMatter(contentWithMatter);
+    const { content: raw, data: matterData } = readMatter(await app.vault.read(activeEditor.file));
+
+    // check site url
+    if (matterData.halo?.site && matterData.halo.site !== this.site.url) {
+      new Notice("站点地址不匹配");
+      return;
+    }
 
     if (matterData.halo?.name) {
       const post = await this.getPost(matterData.halo.name);
@@ -100,7 +105,32 @@ class HaloService {
       typographer: true,
     }).render(raw);
 
+    // restore metadata
+    if (matterData.title) {
+      requestParams.post.spec.title = matterData.title;
+    }
+
+    if (matterData.categories) {
+      const categoryNames = await this.getCategoryNames(matterData.categories);
+      requestParams.post.spec.categories = categoryNames;
+    }
+
+    if (matterData.tags) {
+      const tagNames = await this.getTagNames(matterData.tags);
+      requestParams.post.spec.tags = tagNames;
+    }
+
     if (requestParams.post.metadata.name) {
+      const { name } = requestParams.post.metadata;
+
+      await requestUrl({
+        url: `${this.site.url}/apis/content.halo.run/v1alpha1/posts/${name}`,
+        method: "PUT",
+        contentType: "application/json",
+        headers: this.headers,
+        body: JSON.stringify(requestParams.post),
+      });
+
       await requestUrl({
         url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${requestParams.post.metadata.name}/content`,
         method: "PUT",
@@ -110,8 +140,8 @@ class HaloService {
       });
     } else {
       requestParams.post.metadata.name = randomUUID();
-      requestParams.post.spec.title = activeEditor.file.basename;
-      requestParams.post.spec.slug = randomUUID();
+      requestParams.post.spec.title = matterData.title || activeEditor.file.basename;
+      requestParams.post.spec.slug = slugify(requestParams.post.spec.title, { trim: true });
 
       const post = await requestUrl({
         url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts`,
@@ -124,16 +154,32 @@ class HaloService {
       requestParams.post = post;
     }
 
-    await requestUrl({
-      url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${requestParams.post.metadata.name}/publish`,
-      method: "PUT",
-      contentType: "application/json",
-      headers: this.headers,
-    }).json;
+    // Publish post
+    if (matterData.halo?.publish) {
+      await requestUrl({
+        url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${requestParams.post.metadata.name}/publish`,
+        method: "PUT",
+        contentType: "application/json",
+        headers: this.headers,
+      });
+    } else {
+      await requestUrl({
+        url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${requestParams.post.metadata.name}/unpublish`,
+        method: "PUT",
+        contentType: "application/json",
+        headers: this.headers,
+      });
+    }
+
+    requestParams = (await this.getPost(requestParams.post.metadata.name)) || requestParams;
 
     const modifiedContent = mergeMatter(raw, {
       ...matterData,
-      halo: { site: this.site.url, name: requestParams.post.metadata.name },
+      halo: {
+        site: this.site.url,
+        name: requestParams.post.metadata.name,
+        publish: requestParams.post.spec.publish,
+      },
     });
 
     const editor = activeEditor.editor;
@@ -145,6 +191,8 @@ class HaloService {
       editor.scrollTo(left, top);
       editor.setCursor(position);
     }
+
+    await this.updatePost();
 
     new Notice("发布成功");
   }
@@ -182,11 +230,24 @@ class HaloService {
 
     const post = await this.getPost(matterData.halo.name);
 
+    if (!post) {
+      new Notice("文章不存在");
+      return;
+    }
+
     const editor = activeEditor.editor;
 
+    const postCategories = await this.getCategoryDisplayNames(post.post.spec.categories);
+    const postTags = await this.getTagDisplayNames(post.post.spec.tags);
     const modifiedContent = mergeMatter(post?.content.raw as string, {
-      ...matterData,
-      halo: { site: this.site.url, name: matterData.halo.name },
+      title: post.post.spec.title,
+      categories: postCategories,
+      tags: postTags,
+      halo: {
+        site: this.site.url,
+        name: post.post.metadata.name,
+        publish: post.post.spec.publish,
+      },
     });
 
     if (editor) {
