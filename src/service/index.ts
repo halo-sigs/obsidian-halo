@@ -47,7 +47,7 @@ class HaloService {
       return;
     }
 
-    let requestParams: PostRequest = {
+    let params: PostRequest = {
       post: {
         spec: {
           title: "",
@@ -93,11 +93,11 @@ class HaloService {
 
     if (matterData.halo?.name) {
       const post = await this.getPost(matterData.halo.name);
-      requestParams = post ? post : requestParams;
+      params = post ? post : params;
     }
 
-    requestParams.content.raw = raw;
-    requestParams.content.content = new MarkdownIt({
+    params.content.raw = raw;
+    params.content.content = new MarkdownIt({
       html: true,
       xhtmlOut: true,
       breaks: true,
@@ -107,78 +107,88 @@ class HaloService {
 
     // restore metadata
     if (matterData.title) {
-      requestParams.post.spec.title = matterData.title;
+      params.post.spec.title = matterData.title;
     }
 
     if (matterData.categories) {
       const categoryNames = await this.getCategoryNames(matterData.categories);
-      requestParams.post.spec.categories = categoryNames;
+      params.post.spec.categories = categoryNames;
     }
 
     if (matterData.tags) {
       const tagNames = await this.getTagNames(matterData.tags);
-      requestParams.post.spec.tags = tagNames;
+      params.post.spec.tags = tagNames;
     }
 
-    if (requestParams.post.metadata.name) {
-      const { name } = requestParams.post.metadata;
+    try {
+      if (params.post.metadata.name) {
+        const { name } = params.post.metadata;
 
-      await requestUrl({
-        url: `${this.site.url}/apis/content.halo.run/v1alpha1/posts/${name}`,
-        method: "PUT",
-        contentType: "application/json",
-        headers: this.headers,
-        body: JSON.stringify(requestParams.post),
-      });
+        await requestUrl({
+          url: `${this.site.url}/apis/content.halo.run/v1alpha1/posts/${name}`,
+          method: "PUT",
+          contentType: "application/json",
+          headers: this.headers,
+          body: JSON.stringify(params.post),
+        });
 
-      await requestUrl({
-        url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${requestParams.post.metadata.name}/content`,
-        method: "PUT",
-        contentType: "application/json",
-        headers: this.headers,
-        body: JSON.stringify(requestParams.content),
-      });
-    } else {
-      requestParams.post.metadata.name = randomUUID();
-      requestParams.post.spec.title = matterData.title || activeEditor.file.basename;
-      requestParams.post.spec.slug = slugify(requestParams.post.spec.title, { trim: true });
+        await requestUrl({
+          url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${params.post.metadata.name}/content`,
+          method: "PUT",
+          contentType: "application/json",
+          headers: this.headers,
+          body: JSON.stringify(params.content),
+        });
+      } else {
+        params.post.metadata.name = randomUUID();
+        params.post.spec.title = matterData.title || activeEditor.file.basename;
+        params.post.spec.slug = slugify(params.post.spec.title, { trim: true });
 
-      const post = await requestUrl({
-        url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts`,
-        method: "POST",
-        contentType: "application/json",
-        headers: this.headers,
-        body: JSON.stringify(requestParams),
-      }).json;
+        const post = await requestUrl({
+          url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts`,
+          method: "POST",
+          contentType: "application/json",
+          headers: this.headers,
+          body: JSON.stringify(params),
+        }).json;
 
-      requestParams.post = post;
+        params.post = post;
+      }
+
+      // Publish post
+      if (matterData.halo?.publish) {
+        await requestUrl({
+          url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${params.post.metadata.name}/publish`,
+          method: "PUT",
+          contentType: "application/json",
+          headers: this.headers,
+        });
+      } else {
+        await requestUrl({
+          url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${params.post.metadata.name}/unpublish`,
+          method: "PUT",
+          contentType: "application/json",
+          headers: this.headers,
+        });
+      }
+
+      params = (await this.getPost(params.post.metadata.name)) || params;
+    } catch (error) {
+      new Notice("发布失败，请重试");
+      return;
     }
 
-    // Publish post
-    if (matterData.halo?.publish) {
-      await requestUrl({
-        url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${requestParams.post.metadata.name}/publish`,
-        method: "PUT",
-        contentType: "application/json",
-        headers: this.headers,
-      });
-    } else {
-      await requestUrl({
-        url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${requestParams.post.metadata.name}/unpublish`,
-        method: "PUT",
-        contentType: "application/json",
-        headers: this.headers,
-      });
-    }
-
-    requestParams = (await this.getPost(requestParams.post.metadata.name)) || requestParams;
+    const postCategories = await this.getCategoryDisplayNames(params.post.spec.categories);
+    const postTags = await this.getTagDisplayNames(params.post.spec.tags);
 
     const modifiedContent = mergeMatter(raw, {
-      ...matterData,
+      title: params.post.spec.title,
+      categories: postCategories,
+      tags: postTags,
       halo: {
         site: this.site.url,
-        name: requestParams.post.metadata.name,
-        publish: requestParams.post.spec.publish,
+        name: params.post.metadata.name,
+        publish: params.post.spec.publish,
       },
     });
 
@@ -191,8 +201,6 @@ class HaloService {
       editor.scrollTo(left, top);
       editor.setCursor(position);
     }
-
-    await this.updatePost();
 
     new Notice("发布成功");
   }
@@ -257,8 +265,6 @@ class HaloService {
       editor.setValue(modifiedContent);
       editor.scrollTo(left, top);
       editor.setCursor(position);
-
-      new Notice("更新成功");
     }
   }
 
@@ -283,8 +289,6 @@ class HaloService {
         publish: post.post.spec.publish,
       },
     });
-
-    console.log(modifiedContent);
 
     const file = await app.vault.create(`${post.post.spec.title}.md`, modifiedContent);
 

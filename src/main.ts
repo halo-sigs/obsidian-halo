@@ -24,7 +24,28 @@ export default class HaloPlugin extends Plugin {
       id: "halo-publish",
       name: "Publish to Halo",
       callback: async () => {
-        const site = this.settings.sites[0];
+        const { activeEditor } = app.workspace;
+
+        if (!activeEditor || !activeEditor.file) {
+          return;
+        }
+
+        const { data: matterData } = readMatter(await app.vault.read(activeEditor.file));
+
+        if (matterData.halo.site) {
+          const site = this.settings.sites.find((site) => site.url === matterData.halo.site);
+
+          if (!site) {
+            new Notice("此文档发布到的站点未配置");
+            return;
+          }
+
+          const service = new HaloService(site);
+          await service.publishPost();
+          return;
+        }
+
+        const site = await openSiteSelectionModal(this);
         const service = new HaloService(site);
         await service.publishPost();
       },
@@ -73,6 +94,8 @@ export default class HaloPlugin extends Plugin {
 
         const service = new HaloService(site);
         await service.updatePost();
+
+        new Notice("已更新");
       },
     });
 
@@ -83,8 +106,6 @@ export default class HaloPlugin extends Plugin {
         const site = await openSiteSelectionModal(this);
 
         const post = await openPostSelectionModal(this, site);
-
-        console.log(post);
 
         const service = new HaloService(site);
         await service.pullPost(post.post.metadata.name);
