@@ -16,7 +16,7 @@ class PostSelectionModal extends Modal {
   constructor(
     private readonly plugin: HaloPlugin,
     private readonly site: HaloSite,
-    private readonly onSelect: (post: ListedPost) => void
+    private readonly onSelect: (post: ListedPost) => void,
   ) {
     super(app);
   }
@@ -47,7 +47,7 @@ class PostSelectionModal extends Modal {
               button.setButtonText("选择").onClick(() => {
                 this.onSelect(post);
                 this.close();
-              })
+              }),
             );
           });
         })

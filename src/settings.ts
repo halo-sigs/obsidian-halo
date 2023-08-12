@@ -36,7 +36,7 @@ export class HaloSettingTab extends PluginSettingTab {
       .addButton((button) =>
         button.setButtonText("打开").onClick(() => {
           new HaloSitesModal(this.plugin).open();
-        })
+        }),
       );
   }
 }

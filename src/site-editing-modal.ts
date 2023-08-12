@@ -5,7 +5,7 @@ import { HaloSite } from "./settings";
 export function openSiteEditingModal(
   plugin: HaloPlugin,
   site?: HaloSite,
-  index = -1
+  index = -1,
 ): Promise<{ site: HaloSite; index?: number }> {
   return new Promise((resolve, reject) => {
     const modal = new SiteEditingModal(plugin, site, index, (site, index) => {
@@ -31,7 +31,7 @@ export class SiteEditingModal extends Modal {
       default: false,
     },
     private readonly index: number = -1,
-    private readonly onSubmit: (site: HaloSite, index?: number) => void
+    private readonly onSubmit: (site: HaloSite, index?: number) => void,
   ) {
     super(app);
 
@@ -51,7 +51,7 @@ export class SiteEditingModal extends Modal {
         .addText((text) =>
           text.setValue(this.currentSite.name).onChange((value) => {
             this.currentSite.name = value;
-          })
+          }),
         );
 
       new Setting(contentEl)
@@ -60,7 +60,7 @@ export class SiteEditingModal extends Modal {
         .addText((text) =>
           text.setValue(this.currentSite.url).onChange((value) => {
             this.currentSite.url = value;
-          })
+          }),
         );
 
       new Setting(contentEl)
@@ -69,13 +69,13 @@ export class SiteEditingModal extends Modal {
         .addText((text) =>
           text.setValue(this.currentSite.username).onChange((value) => {
             this.currentSite.username = value;
-          })
+          }),
         );
 
       new Setting(contentEl).setName("密码").addText((text) =>
         text.setValue(this.currentSite.password).onChange((value) => {
           this.currentSite.password = value;
-        })
+        }),
       );
 
       new Setting(contentEl)
@@ -84,7 +84,7 @@ export class SiteEditingModal extends Modal {
         .addToggle((toggle) =>
           toggle.setValue(this.currentSite.default).onChange((value) => {
             this.currentSite.default = value;
-          })
+          }),
         );
 
       new Setting(contentEl)
@@ -96,7 +96,7 @@ export class SiteEditingModal extends Modal {
               url: `${this.currentSite.url}/apis/api.console.halo.run/v1alpha1/posts?page=1&size=1`,
               headers: {
                 Authorization: `Basic ${Buffer.from(
-                  `${this.currentSite.username}:${this.currentSite.password}`
+                  `${this.currentSite.username}:${this.currentSite.password}`,
                 ).toString("base64")}`,
               },
             })
@@ -119,7 +119,7 @@ export class SiteEditingModal extends Modal {
             .onClick(() => {
               this.onSubmit(this.currentSite, this.index);
               this.close();
-            })
+            }),
         );
     };
 

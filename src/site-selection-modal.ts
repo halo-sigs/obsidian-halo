@@ -14,7 +14,10 @@ export function openSiteSelectionModal(plugin: HaloPlugin): Promise<HaloSite> {
 class SiteSelectionModal extends Modal {
   private readonly sites: HaloSite[];
 
-  constructor(private readonly plugin: HaloPlugin, private readonly onSelect: (site: HaloSite) => void) {
+  constructor(
+    private readonly plugin: HaloPlugin,
+    private readonly onSelect: (site: HaloSite) => void,
+  ) {
     super(app);
 
     this.sites = plugin.settings.sites;
@@ -35,7 +38,7 @@ class SiteSelectionModal extends Modal {
           button.setButtonText("选择").onClick(() => {
             this.onSelect(site);
             this.close();
-          })
+          }),
         );
       });
 

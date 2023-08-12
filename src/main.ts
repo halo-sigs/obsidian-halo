@@ -1,6 +1,6 @@
 import { Notice, Plugin } from "obsidian";
 import { addHaloIcon } from "./icons";
-import { HaloSettingTab, HaloSetting, DEFAULT_SETTINGS } from "./settings";
+import { HaloSettingTab, HaloSetting, DEFAULT_SETTINGS, HaloSite } from "./settings";
 import { readMatter } from "./utils/yaml";
 import { openSiteSelectionModal } from "./site-selection-modal";
 import { openPostSelectionModal } from "./post-selection-model";
@@ -103,7 +103,16 @@ export default class HaloPlugin extends Plugin {
       id: "halo-pull-post",
       name: "Pull post from Halo",
       callback: async () => {
-        const site = await openSiteSelectionModal(this);
+        if (this.settings.sites.length === 0) {
+          new Notice("请先配置站点");
+          return;
+        }
+
+        let site: HaloSite = this.settings.sites[0];
+
+        if (this.settings.sites.length > 1) {
+          site = await openSiteSelectionModal(this);
+        }
 
         const post = await openPostSelectionModal(this, site);
 

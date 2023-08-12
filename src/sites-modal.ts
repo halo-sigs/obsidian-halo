@@ -25,7 +25,7 @@ export class HaloSitesModal extends Modal {
               site.default = true;
               this.plugin.saveSettings();
               renderContent();
-            })
+            }),
           );
         }
 
@@ -39,14 +39,14 @@ export class HaloSitesModal extends Modal {
 
               renderContent();
             }
-          })
+          }),
         );
         setting.addExtraButton((button) =>
           button.setIcon("lucide-trash").onClick(() => {
             this.plugin.settings.sites.splice(index, 1);
             this.plugin.saveSettings();
             renderContent();
-          })
+          }),
         );
       });
 
@@ -68,7 +68,7 @@ export class HaloSitesModal extends Modal {
           await this.plugin.saveSettings();
 
           renderContent();
-        })
+        }),
       );
     };
 
