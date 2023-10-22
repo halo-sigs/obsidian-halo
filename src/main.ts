@@ -32,7 +32,7 @@ export default class HaloPlugin extends Plugin {
 
         const { data: matterData } = readMatter(await this.app.vault.read(activeEditor.file));
 
-        if (matterData.halo.site) {
+        if (matterData.halo?.site) {
           const site = this.settings.sites.find((site) => site.url === matterData.halo.site);
 
           if (!site) {
