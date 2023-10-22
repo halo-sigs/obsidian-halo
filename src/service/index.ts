@@ -1,5 +1,5 @@
 import { Category, PostRequest, Tag } from "@halo-dev/api-client";
-import { Notice, requestUrl } from "obsidian";
+import { App, Notice, requestUrl } from "obsidian";
 import { HaloSite } from "../settings";
 import MarkdownIt from "markdown-it";
 import { randomUUID } from "crypto";
@@ -8,9 +8,11 @@ import { slugify } from "transliteration";
 
 class HaloService {
   private readonly site: HaloSite;
+  private readonly app: App;
   private readonly headers: Record<string, string> = {};
 
-  constructor(site: HaloSite) {
+  constructor(app: App, site: HaloSite) {
+    this.app = app;
     this.site = site;
 
     this.headers = {
@@ -41,7 +43,7 @@ class HaloService {
   }
 
   public async publishPost(): Promise<void> {
-    const { activeEditor } = app.workspace;
+    const { activeEditor } = this.app.workspace;
 
     if (!activeEditor || !activeEditor.file) {
       return;
@@ -83,7 +85,7 @@ class HaloService {
       },
     };
 
-    const { content: raw, data: matterData } = readMatter(await app.vault.read(activeEditor.file));
+    const { content: raw, data: matterData } = readMatter(await this.app.vault.read(activeEditor.file));
 
     // check site url
     if (matterData.halo?.site && matterData.halo.site !== this.site.url) {
@@ -222,13 +224,13 @@ class HaloService {
   }
 
   public async updatePost(): Promise<void> {
-    const { activeEditor } = app.workspace;
+    const { activeEditor } = this.app.workspace;
 
     if (!activeEditor || !activeEditor.file) {
       return;
     }
 
-    const contentWithMatter = await app.vault.read(activeEditor.file);
+    const contentWithMatter = await this.app.vault.read(activeEditor.file);
     const { data: matterData } = readMatter(contentWithMatter);
 
     if (!matterData.halo?.name) {
@@ -290,9 +292,9 @@ class HaloService {
       },
     });
 
-    const file = await app.vault.create(`${post.post.spec.title}.md`, modifiedContent);
+    const file = await this.app.vault.create(`${post.post.spec.title}.md`, modifiedContent);
 
-    app.workspace.getLeaf().openFile(file);
+    this.app.workspace.getLeaf().openFile(file);
   }
 
   public async getCategoryNames(displayNames: string[]): Promise<string[]> {

@@ -24,13 +24,13 @@ export default class HaloPlugin extends Plugin {
       id: "halo-publish",
       name: "Publish to Halo",
       callback: async () => {
-        const { activeEditor } = app.workspace;
+        const { activeEditor } = this.app.workspace;
 
         if (!activeEditor || !activeEditor.file) {
           return;
         }
 
-        const { data: matterData } = readMatter(await app.vault.read(activeEditor.file));
+        const { data: matterData } = readMatter(await this.app.vault.read(activeEditor.file));
 
         if (matterData.halo.site) {
           const site = this.settings.sites.find((site) => site.url === matterData.halo.site);
@@ -40,13 +40,13 @@ export default class HaloPlugin extends Plugin {
             return;
           }
 
-          const service = new HaloService(site);
+          const service = new HaloService(this.app, site);
           await service.publishPost();
           return;
         }
 
         const site = await openSiteSelectionModal(this);
-        const service = new HaloService(site);
+        const service = new HaloService(this.app, site);
         await service.publishPost();
       },
     });
@@ -62,7 +62,7 @@ export default class HaloPlugin extends Plugin {
           return;
         }
 
-        const service = new HaloService(site);
+        const service = new HaloService(this.app, site);
         await service.publishPost();
       },
     });
@@ -71,13 +71,13 @@ export default class HaloPlugin extends Plugin {
       id: "halo-update-post",
       name: "Update post from Halo",
       editorCallback: async () => {
-        const { activeEditor } = app.workspace;
+        const { activeEditor } = this.app.workspace;
 
         if (!activeEditor || !activeEditor.file) {
           return;
         }
 
-        const contentWithMatter = await app.vault.read(activeEditor.file);
+        const contentWithMatter = await this.app.vault.read(activeEditor.file);
         const { data: matterData } = readMatter(contentWithMatter);
 
         if (!matterData.halo?.site) {
@@ -92,7 +92,7 @@ export default class HaloPlugin extends Plugin {
           return;
         }
 
-        const service = new HaloService(site);
+        const service = new HaloService(this.app, site);
         await service.updatePost();
 
         new Notice("已更新");
@@ -116,7 +116,7 @@ export default class HaloPlugin extends Plugin {
 
         const post = await openPostSelectionModal(this, site);
 
-        const service = new HaloService(site);
+        const service = new HaloService(this.app, site);
         await service.pullPost(post.post.metadata.name);
       },
     });
