@@ -16,44 +16,21 @@ export default class HaloPlugin extends Plugin {
 
     addHaloIcon();
 
-    this.addRibbonIcon("halo-logo", "Publish to Halo", (evt: MouseEvent) => {
-      new Notice("This is a notice!");
+    this.addRibbonIcon("halo-logo", "发布当前文档到 Halo", async (evt: MouseEvent) => {
+      await this.publishCommand();
     });
 
     this.addCommand({
       id: "halo-publish",
-      name: "Publish to Halo",
+      name: "发布到 Halo",
       callback: async () => {
-        const { activeEditor } = this.app.workspace;
-
-        if (!activeEditor || !activeEditor.file) {
-          return;
-        }
-
-        const { data: matterData } = readMatter(await this.app.vault.read(activeEditor.file));
-
-        if (matterData.halo?.site) {
-          const site = this.settings.sites.find((site) => site.url === matterData.halo.site);
-
-          if (!site) {
-            new Notice("此文档发布到的站点未配置");
-            return;
-          }
-
-          const service = new HaloService(this.app, site);
-          await service.publishPost();
-          return;
-        }
-
-        const site = await openSiteSelectionModal(this);
-        const service = new HaloService(this.app, site);
-        await service.publishPost();
+        await this.publishCommand();
       },
     });
 
     this.addCommand({
       id: "halo-publish-with-defaults",
-      name: "Publish to Halo(with defaults)",
+      name: "发布到 Halo（使用默认配置）",
       callback: async () => {
         const site = this.settings.sites.find((site) => site.default);
 
@@ -69,7 +46,7 @@ export default class HaloPlugin extends Plugin {
 
     this.addCommand({
       id: "halo-update-post",
-      name: "Update post from Halo",
+      name: "从 Halo 更新内容",
       editorCallback: async () => {
         const { activeEditor } = this.app.workspace;
 
@@ -101,7 +78,7 @@ export default class HaloPlugin extends Plugin {
 
     this.addCommand({
       id: "halo-pull-post",
-      name: "Pull post from Halo",
+      name: "从 Halo 拉取文档",
       callback: async () => {
         if (this.settings.sites.length === 0) {
           new Notice("请先配置站点");
@@ -132,5 +109,32 @@ export default class HaloPlugin extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings);
+  }
+
+  private async publishCommand() {
+    const { activeEditor } = this.app.workspace;
+
+    if (!activeEditor || !activeEditor.file) {
+      return;
+    }
+
+    const { data: matterData } = readMatter(await this.app.vault.read(activeEditor.file));
+
+    if (matterData.halo?.site) {
+      const site = this.settings.sites.find((site) => site.url === matterData.halo.site);
+
+      if (!site) {
+        new Notice("此文档发布到的站点未配置");
+        return;
+      }
+
+      const service = new HaloService(this.app, site);
+      await service.publishPost();
+      return;
+    }
+
+    const site = await openSiteSelectionModal(this);
+    const service = new HaloService(this.app, site);
+    await service.publishPost();
   }
 }
