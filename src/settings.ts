@@ -5,8 +5,7 @@ import { HaloSitesModal } from "./sites-modal";
 export interface HaloSite {
   name: string;
   url: string;
-  username: string;
-  password: string;
+  token: string;
   default: boolean;
 }
 

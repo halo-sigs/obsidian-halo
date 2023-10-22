@@ -26,8 +26,7 @@ export class SiteEditingModal extends Modal {
     private readonly site: HaloSite = {
       name: "",
       url: "",
-      username: "",
-      password: "",
+      token: "",
       default: false,
     },
     private readonly index: number = -1,
@@ -64,19 +63,13 @@ export class SiteEditingModal extends Modal {
         );
 
       new Setting(contentEl)
-        .setName("用户名")
+        .setName("个人令牌")
         .setDesc("需要包含文章管理的相关权限")
         .addText((text) =>
-          text.setValue(this.currentSite.username).onChange((value) => {
-            this.currentSite.username = value;
+          text.setValue(this.currentSite.token).onChange((value) => {
+            this.currentSite.token = value;
           }),
         );
-
-      new Setting(contentEl).setName("密码").addText((text) =>
-        text.setValue(this.currentSite.password).onChange((value) => {
-          this.currentSite.password = value;
-        }),
-      );
 
       new Setting(contentEl)
         .setName("是否设置为默认")
@@ -95,9 +88,7 @@ export class SiteEditingModal extends Modal {
             requestUrl({
               url: `${this.currentSite.url}/apis/api.console.halo.run/v1alpha1/posts?page=1&size=1`,
               headers: {
-                Authorization: `Basic ${Buffer.from(
-                  `${this.currentSite.username}:${this.currentSite.password}`,
-                ).toString("base64")}`,
+                Authorization: `Bearer ${this.currentSite.token}`,
               },
             })
               .then(() => {

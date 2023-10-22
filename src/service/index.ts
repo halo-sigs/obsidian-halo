@@ -15,7 +15,7 @@ class HaloService {
 
     this.headers = {
       "Content-Type": "application/json",
-      Authorization: `Basic ${Buffer.from(`${site.username}:${site.password}`).toString("base64")}`,
+      Authorization: `Bearer ${site.token}`,
     };
   }
 

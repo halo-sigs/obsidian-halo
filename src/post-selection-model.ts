@@ -32,7 +32,7 @@ class PostSelectionModal extends Modal {
       requestUrl({
         url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts`,
         headers: {
-          Authorization: `Basic ${Buffer.from(`${this.site.username}:${this.site.password}`).toString("base64")}`,
+          Authorization: `Bearer ${this.site.token}`,
         },
       })
         .then((response) => {
