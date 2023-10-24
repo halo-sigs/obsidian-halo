@@ -4,6 +4,11 @@ This plugin allows you to publish your Obsidian documents to [Halo](https://gith
 
 > Note: This plugin is still in development, and is not ready for production use.
 
+## TODO
+
+- [ ] i18n
+- [ ] Upload images
+
 ## Development
 
 1. [Create a new Obisidian vault](https://help.obsidian.md/Getting+started/Create+a+vault) for development.
