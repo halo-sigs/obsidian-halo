@@ -86,13 +86,17 @@ export class SiteEditingModal extends Modal {
             button.setDisabled(true);
             button.setButtonText("验证中...");
             requestUrl({
-              url: `${this.currentSite.url}/apis/api.console.halo.run/v1alpha1/posts?page=1&size=1`,
+              url: `${this.currentSite.url}/apis/api.console.halo.run/v1alpha1/users/-/permissions`,
               headers: {
                 Authorization: `Bearer ${this.currentSite.token}`,
               },
             })
-              .then(() => {
-                new Notice("连接正常");
+              .then((response) => {
+                if (response.json.uiPermissions.includes("system:posts:manage")) {
+                  new Notice(`连接正常`);
+                } else {
+                  new Notice("当前账号没有文章管理权限");
+                }
               })
               .catch(() => {
                 new Notice("连接失败");

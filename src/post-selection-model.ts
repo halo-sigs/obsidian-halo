@@ -27,10 +27,10 @@ class PostSelectionModal extends Modal {
     const renderPostList = (): void => {
       contentEl.empty();
 
-      contentEl.createEl("h2", { text: "选择一篇 Halo 文章" });
+      contentEl.createEl("h2", { text: "从 Halo 拉取文章" });
 
       requestUrl({
-        url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts`,
+        url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts?labelSelector=content.halo.run%2Fdeleted%3Dfalse`,
         headers: {
           Authorization: `Bearer ${this.site.token}`,
         },
@@ -39,12 +39,10 @@ class PostSelectionModal extends Modal {
           const posts: ListedPost[] = response.json.items;
 
           posts.forEach((post) => {
-            const setting = new Setting(contentEl)
-              .setName(post.post.spec.title)
-              .setDesc(post.post.status?.permalink + "");
+            const setting = new Setting(contentEl).setName(post.post.spec.title).setDesc(post.post.spec.slug);
 
             setting.addButton((button) =>
-              button.setButtonText("选择").onClick(() => {
+              button.setButtonText("拉取").onClick(() => {
                 this.onSelect(post);
                 this.close();
               }),
@@ -53,9 +51,10 @@ class PostSelectionModal extends Modal {
         })
         .catch(() => {
           new Notice("连接失败");
+        })
+        .finally(() => {
+          new Setting(contentEl).addButton((button) => button.setButtonText("关闭").onClick(() => this.close()));
         });
-
-      new Setting(contentEl).addButton((button) => button.setButtonText("关闭").onClick(() => this.close()));
     };
 
     renderPostList();

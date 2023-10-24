@@ -27,7 +27,7 @@ export class HaloSettingTab extends PluginSettingTab {
 
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "Halo - Settings" });
+    containerEl.createEl("h2", { text: "Halo 发布设置" });
 
     new Setting(containerEl)
       .setName("Halo 站点")
