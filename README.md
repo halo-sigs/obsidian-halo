@@ -8,6 +8,7 @@ This plugin allows you to publish your Obsidian documents to [Halo](https://gith
 
 - [ ] i18n
 - [ ] Upload images
+- [ ] Publish this plugin to Obsidian community
 
 ## Development
 
