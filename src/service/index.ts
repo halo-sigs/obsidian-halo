@@ -5,6 +5,7 @@ import MarkdownIt from "markdown-it";
 import { randomUUID } from "crypto";
 import { readMatter, mergeMatter } from "../utils/yaml";
 import { slugify } from "transliteration";
+import i18next from "i18next";
 
 class HaloService {
   private readonly site: HaloSite;
@@ -89,7 +90,7 @@ class HaloService {
 
     // check site url
     if (matterData.halo?.site && matterData.halo.site !== this.site.url) {
-      new Notice("站点地址不匹配");
+      new Notice(i18next.t("service.error_site_not_match"));
       return;
     }
 
@@ -176,7 +177,7 @@ class HaloService {
 
       params = (await this.getPost(params.post.metadata.name)) || params;
     } catch (error) {
-      new Notice("发布失败，请重试");
+      new Notice(i18next.t("service.error_publish_failed"));
       return;
     }
 
@@ -204,7 +205,7 @@ class HaloService {
       editor.setCursor(position);
     }
 
-    new Notice("发布成功");
+    new Notice(i18next.t("service.notice_publish_success"));
   }
 
   public async getCategories(): Promise<Category[]> {
@@ -234,14 +235,14 @@ class HaloService {
     const { data: matterData } = readMatter(contentWithMatter);
 
     if (!matterData.halo?.name) {
-      new Notice("此文档还未发布到 Halo");
+      new Notice(i18next.t("service.error_not_published"));
       return;
     }
 
     const post = await this.getPost(matterData.halo.name);
 
     if (!post) {
-      new Notice("文章不存在");
+      new Notice(i18next.t("service.error_post_not_found"));
       return;
     }
 
@@ -274,7 +275,7 @@ class HaloService {
     const post = await this.getPost(name);
 
     if (!post) {
-      new Notice("文章不存在");
+      new Notice(i18next.t("service.error_post_not_found"));
       return;
     }
 

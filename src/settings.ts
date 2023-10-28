@@ -1,6 +1,7 @@
 import { PluginSettingTab, Setting } from "obsidian";
 import HaloPlugin from "./main";
 import { HaloSitesModal } from "./sites-modal";
+import i18next from "i18next";
 
 export interface HaloSite {
   name: string;
@@ -27,13 +28,13 @@ export class HaloSettingTab extends PluginSettingTab {
 
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "Halo 发布设置" });
+    containerEl.createEl("h2", { text: i18next.t("settings.title") });
 
     new Setting(containerEl)
-      .setName("Halo 站点")
-      .setDesc("Halo 站点管理，支持设置多个")
+      .setName(i18next.t("settings.site.name"))
+      .setDesc(i18next.t("settings.site.description"))
       .addButton((button) =>
-        button.setButtonText("打开").onClick(() => {
+        button.setButtonText(i18next.t("settings.site.actions.open")).onClick(() => {
           new HaloSitesModal(this.plugin).open();
         }),
       );

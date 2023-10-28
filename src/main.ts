@@ -1,10 +1,12 @@
-import { Notice, Plugin } from "obsidian";
+import { Notice, Plugin, moment } from "obsidian";
 import { addHaloIcon } from "./icons";
 import { HaloSettingTab, HaloSetting, DEFAULT_SETTINGS, HaloSite } from "./settings";
 import { readMatter } from "./utils/yaml";
 import { openSiteSelectionModal } from "./site-selection-modal";
 import { openPostSelectionModal } from "./post-selection-model";
 import HaloService from "./service";
+import i18next from "i18next";
+import { resources } from "./i18n";
 
 export default class HaloPlugin extends Plugin {
   settings: HaloSetting;
@@ -12,17 +14,24 @@ export default class HaloPlugin extends Plugin {
   async onload() {
     console.log("loading obsidian-halo plugin");
 
+    await i18next.init({
+      lng: moment.locale(),
+      fallbackLng: "en",
+      resources,
+      returnNull: false,
+    });
+
     await this.loadSettings();
 
     addHaloIcon();
 
-    this.addRibbonIcon("halo-logo", "发布当前文档到 Halo", async (evt: MouseEvent) => {
+    this.addRibbonIcon("halo-logo", i18next.t("ribbon_icon.publish"), async (evt: MouseEvent) => {
       await this.publishCommand();
     });
 
     this.addCommand({
       id: "halo-publish",
-      name: "发布到 Halo",
+      name: i18next.t("command.publish.name"),
       callback: async () => {
         await this.publishCommand();
       },
@@ -30,12 +39,12 @@ export default class HaloPlugin extends Plugin {
 
     this.addCommand({
       id: "halo-publish-with-defaults",
-      name: "发布到 Halo（使用默认配置）",
+      name: i18next.t("command.publish_with_defaults.name"),
       callback: async () => {
         const site = this.settings.sites.find((site) => site.default);
 
         if (!site) {
-          new Notice("请先配置默认站点");
+          new Notice(i18next.t("command.publish_with_defaults.error_no_default_site"));
           return;
         }
 
@@ -46,7 +55,7 @@ export default class HaloPlugin extends Plugin {
 
     this.addCommand({
       id: "halo-update-post",
-      name: "从 Halo 更新内容",
+      name: i18next.t("command.update_post.name"),
       editorCallback: async () => {
         const { activeEditor } = this.app.workspace;
 
@@ -58,30 +67,31 @@ export default class HaloPlugin extends Plugin {
         const { data: matterData } = readMatter(contentWithMatter);
 
         if (!matterData.halo?.site) {
-          new Notice("此文档还未发布到 Halo");
+          new Notice(i18next.t("command.update_post.error_not_published"));
           return;
         }
 
         const site = this.settings.sites.find((site) => site.url === matterData.halo?.site);
 
         if (!site) {
-          new Notice("此文档发布到的站点未配置");
+          new Notice(i18next.t("command.update_post.error_no_matched_site"));
           return;
         }
 
         const service = new HaloService(this.app, site);
+        
         await service.updatePost();
 
-        new Notice("已更新");
+        new Notice(i18next.t("command.update_post.success"));
       },
     });
 
     this.addCommand({
       id: "halo-pull-post",
-      name: "从 Halo 拉取文档",
+      name: i18next.t("command.pull_post.name"),
       callback: async () => {
         if (this.settings.sites.length === 0) {
-          new Notice("请先配置站点");
+          new Notice(i18next.t("command.pull_post.error_no_sites"));
           return;
         }
 
@@ -124,7 +134,7 @@ export default class HaloPlugin extends Plugin {
       const site = this.settings.sites.find((site) => site.url === matterData.halo.site);
 
       if (!site) {
-        new Notice("此文档发布到的站点未配置");
+        new Notice(i18next.t("command.publish.error_no_matched_site"));
         return;
       }
 

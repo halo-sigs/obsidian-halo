@@ -1,6 +1,7 @@
 import { Modal, Setting } from "obsidian";
 import HaloPlugin from "./main";
 import { openSiteEditingModal } from "./site-editing-modal";
+import i18next from "i18next";
 
 export class HaloSitesModal extends Modal {
   constructor(private readonly plugin: HaloPlugin) {
@@ -13,14 +14,14 @@ export class HaloSitesModal extends Modal {
     const renderContent = (): void => {
       contentEl.empty();
 
-      contentEl.createEl("h2", { text: "Halo 站点" });
+      contentEl.createEl("h2", { text: i18next.t("sites_modal.title") });
 
       this.plugin.settings.sites.forEach((site, index) => {
         const setting = new Setting(contentEl).setName(site.name).setDesc(site.url);
 
         if (!site.default) {
           setting.addButton((button) =>
-            button.setButtonText("设为默认").onClick(() => {
+            button.setButtonText(i18next.t("sites_modal.actions.set_default")).onClick(() => {
               this.plugin.settings.sites.forEach((site) => (site.default = false));
               site.default = true;
               this.plugin.saveSettings();
@@ -30,7 +31,7 @@ export class HaloSitesModal extends Modal {
         }
 
         setting.addButton((button) =>
-          button.setButtonText("编辑").onClick(async () => {
+          button.setButtonText(i18next.t("sites_modal.actions.edit")).onClick(async () => {
             const { site: updatedSite, index: currentIndex } = await openSiteEditingModal(this.plugin, site, index);
 
             if (currentIndex !== undefined && currentIndex > -1) {
@@ -51,7 +52,7 @@ export class HaloSitesModal extends Modal {
       });
 
       new Setting(contentEl).addButton((button) =>
-        button.setButtonText("添加").onClick(async () => {
+        button.setButtonText(i18next.t("sites_modal.actions.add")).onClick(async () => {
           const { site } = await openSiteEditingModal(this.plugin);
 
           if (this.plugin.settings.sites.length == 0) {

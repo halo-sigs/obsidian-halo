@@ -1,6 +1,7 @@
 import { Modal, Setting, requestUrl, Notice } from "obsidian";
 import HaloPlugin from "./main";
 import { HaloSite } from "./settings";
+import i18next from "i18next";
 
 export function openSiteEditingModal(
   plugin: HaloPlugin,
@@ -42,11 +43,11 @@ export class SiteEditingModal extends Modal {
     const renderContent = () => {
       contentEl.empty();
 
-      contentEl.createEl("h2", { text: "Halo 站点" });
+      contentEl.createEl("h2", { text: i18next.t("site_editing_modal.title") });
 
       new Setting(contentEl)
-        .setName("站点名称")
-        .setDesc("Halo 的站点名称")
+        .setName(i18next.t("site_editing_modal.settings.name.name"))
+        .setDesc(i18next.t("site_editing_modal.settings.name.description"))
         .addText((text) =>
           text.setValue(this.currentSite.name).onChange((value) => {
             this.currentSite.name = value;
@@ -54,8 +55,8 @@ export class SiteEditingModal extends Modal {
         );
 
       new Setting(contentEl)
-        .setName("站点地址")
-        .setDesc("Halo 的站点地址")
+        .setName(i18next.t("site_editing_modal.settings.url.name"))
+        .setDesc(i18next.t("site_editing_modal.settings.url.description"))
         .addText((text) =>
           text.setValue(this.currentSite.url).onChange((value) => {
             this.currentSite.url = value;
@@ -63,8 +64,8 @@ export class SiteEditingModal extends Modal {
         );
 
       new Setting(contentEl)
-        .setName("个人令牌")
-        .setDesc("需要包含文章管理的相关权限")
+        .setName(i18next.t("site_editing_modal.settings.token.name"))
+        .setDesc(i18next.t("site_editing_modal.settings.token.description"))
         .addText((text) =>
           text.setValue(this.currentSite.token).onChange((value) => {
             this.currentSite.token = value;
@@ -72,8 +73,8 @@ export class SiteEditingModal extends Modal {
         );
 
       new Setting(contentEl)
-        .setName("是否设置为默认")
-        .setDesc("设置为默认的发布站点")
+        .setName(i18next.t("site_editing_modal.settings.default.name"))
+        .setDesc(i18next.t("site_editing_modal.settings.default.description"))
         .addToggle((toggle) =>
           toggle.setValue(this.currentSite.default).onChange((value) => {
             this.currentSite.default = value;
@@ -82,9 +83,9 @@ export class SiteEditingModal extends Modal {
 
       new Setting(contentEl)
         .addButton((button) => {
-          button.setButtonText("验证").onClick(() => {
+          button.setButtonText(i18next.t("site_editing_modal.settings.validate.button")).onClick(() => {
             button.setDisabled(true);
-            button.setButtonText("验证中...");
+            button.setButtonText(i18next.t("site_editing_modal.settings.validate.button_validating"));
             requestUrl({
               url: `${this.currentSite.url}/apis/api.console.halo.run/v1alpha1/users/-/permissions`,
               headers: {
@@ -93,23 +94,23 @@ export class SiteEditingModal extends Modal {
             })
               .then((response) => {
                 if (response.json.uiPermissions.includes("system:posts:manage")) {
-                  new Notice(`连接正常`);
+                  new Notice(i18next.t("site_editing_modal.settings.validate.notice_validated"));
                 } else {
-                  new Notice("当前账号没有文章管理权限");
+                  new Notice(i18next.t("site_editing_modal.settings.validate.error_no_permissions"));
                 }
               })
               .catch(() => {
-                new Notice("连接失败");
+                new Notice(i18next.t("common.error_connection_failed"));
               })
               .finally(() => {
                 button.setDisabled(false);
-                button.setButtonText("验证");
+                button.setButtonText(i18next.t("site_editing_modal.settings.validate.button"));
               });
           });
         })
         .addButton((button) =>
           button
-            .setButtonText("保存")
+            .setButtonText(i18next.t("site_editing_modal.settings.save.button"))
             .setCta()
             .onClick(() => {
               this.onSubmit(this.currentSite, this.index);

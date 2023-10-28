@@ -1,0 +1,92 @@
+{
+  "ribbon_icon": {
+    "publish": "Publish current document to Halo"
+  },
+  "command": {
+    "publish": {
+      "name": "Publish to Halo",
+      "error_no_matched_site": "The site this document publishes to is not configured"
+    },
+    "publish_with_defaults": {
+      "name": "Publish to Halo (use default settings)",
+      "error_no_default_site": "Please configure the default site first"
+    },
+    "update_post": {
+      "name": "Update content from Halo",
+      "error_not_published": "This document is not published to Halo yet",
+      "error_no_matched_site": "The site this document publishes to is not configured",
+      "success": "Updated"
+    },
+    "pull_post": {
+      "name": "Pull posts from Halo",
+      "error_no_sites": "Please configure sites first"
+    }
+  },
+  "settings": {
+    "title": "Halo Publishing Settings",
+    "site": {
+      "name": "Halo Sites",
+      "description": "Halo site management, supports multiple sites",
+      "actions": {
+        "open": "Open"
+      }
+    }
+  },
+  "post_selection_modal": {
+    "title": "Pull posts from Halo",
+    "button_pull": "Pull"
+  },
+  "site_editing_modal": {
+    "title": "Halo Site",
+    "settings": {
+      "name": {
+        "name": "Site Name",
+        "description": "Halo site name"
+      },
+      "url": {
+        "name": "Site URL",
+        "description": "Halo site URL"
+      },
+      "token": {
+        "name": "Personal Access Token",
+        "description": "Can be created in user profile, need permissions for managing posts"
+      },
+      "default": {
+        "name": "Set as Default",
+        "description": "Set as default publishing site"
+      },
+      "validate": {
+        "button": "Validate",
+        "button_validating": "Validating...",
+        "notice_validated": "Validation succeeded",
+        "error_no_permissions": "Current account has no permissions for managing posts"
+      },
+      "save": {
+        "button": "Save"
+      }
+    }
+  },
+  "site_selection_modal": {
+    "title": "Choose a Halo site",
+    "button_choose": "Choose"
+  },
+  "sites_modal": {
+    "title": "Halo Sites",
+    "actions": {
+      "set_default": "Set as default",
+      "edit": "Edit",
+      "add": "Add"
+    }
+  },
+  "service": {
+    "error_site_not_match": "Site URL does not match",
+    "error_publish_failed": "Publishing failed, please retry",
+    "notice_publish_success": "Published successfully",
+    "error_not_published": "This document is not published to Halo yet",
+    "error_post_not_found": "Post does not exist"
+  },
+  "common": {
+    "error_connection_failed": "Connection failed",
+    "button_close": "Close"
+  }
+}

@@ -11,6 +11,9 @@ dependencies:
   gray-matter:
     specifier: ^4.0.3
     version: 4.0.3
+  i18next:
+    specifier: ^23.6.0
+    version: 23.6.0
   js-yaml:
     specifier: ^4.1.0
     version: 4.1.0
@@ -54,7 +57,7 @@ devDependencies:
     version: 5.0.1(eslint-config-prettier@8.10.0)(eslint@8.52.0)(prettier@3.0.3)
   obsidian:
     specifier: latest
-    version: 1.4.0(@codemirror/state@6.2.0)(@codemirror/view@6.12.0)
+    version: 1.4.11(@codemirror/state@6.2.0)(@codemirror/view@6.12.0)
   prettier:
     specifier: ^3.0.3
     version: 3.0.3
@@ -71,6 +74,13 @@ packages:
     resolution: {integrity: sha512-1Yjs2SvM8TflER/OD3cOjhWWOZb58A2t7wpE2S9XfBYTiIl+XFhQG2bjy4Pu1I+EAlCNUzRDYDdFwFYUKvXcIA==}
     engines: {node: '>=0.10.0'}
     dev: true
+
+  /@babel/runtime@7.23.2:
+    resolution: {integrity: sha512-mM8eg4yl5D6i3lu2QKPuPH4FArvJ8KhTofbE7jwMUv9KX5mBvwPAqnV3MlyBNqdp9RyRKP6Yck8TrfYrPvX3bg==}
+    engines: {node: '>=6.9.0'}
+    dependencies:
+      regenerator-runtime: 0.14.0
+    dev: false
 
   /@codemirror/state@6.2.0:
     resolution: {integrity: sha512-69QXtcrsc3RYtOtd+GsvczJ319udtBf1PTrr2KbLWM/e2CXUPnh0Nz9AUo8WfhSQ7GeL8dPVNUmhQVgpmuaNGA==}
@@ -1135,6 +1145,12 @@ packages:
     engines: {node: '>=14.18.0'}
     dev: true
 
+  /i18next@23.6.0:
+    resolution: {integrity: sha512-z0Cxr0MGkt+kli306WS4nNNM++9cgt2b2VCMprY92j+AIab/oclgPxdwtTZVLP1zn5t5uo8M6uLsZmYrcjr3HA==}
+    dependencies:
+      '@babel/runtime': 7.23.2
+    dev: false
+
   /ignore@5.2.4:
     resolution: {integrity: sha512-MAb38BcSbH0eHNBxn7ql2NH/kX33OkB3lZ1BNdh7ENeRChHTYsTvWrMubiIAMNS2llXEEgZ1MUOBtXChP3kaFQ==}
     engines: {node: '>= 4'}
@@ -1374,8 +1390,8 @@ packages:
       path-key: 4.0.0
     dev: true
 
-  /obsidian@1.4.0(@codemirror/state@6.2.0)(@codemirror/view@6.12.0):
-    resolution: {integrity: sha512-fsZMPlxgflGSBSP6P4BjQi5+0MqZl3h6FEDEZ3CNnweNdDw0doyqN3FMO/PGWfuxPT77WicVwUxekuI3e6eCGg==}
+  /obsidian@1.4.11(@codemirror/state@6.2.0)(@codemirror/view@6.12.0):
+    resolution: {integrity: sha512-BCVYTvaXxElJMl6MMbDdY/CGK+aq18SdtDY/7vH8v6BxCBQ6KF4kKxL0vG9UZ0o5qh139KpUoJHNm+6O5dllKA==}
     peerDependencies:
       '@codemirror/state': ^6.0.0
       '@codemirror/view': ^6.0.0
@@ -1509,6 +1525,10 @@ packages:
   /queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
     dev: true
+
+  /regenerator-runtime@0.14.0:
+    resolution: {integrity: sha512-srw17NI0TUWHuGa5CFGGmhfNIeja30WMBfbslPNhf6JrqQlLN5gcrvig1oqPxiVaXb0oW0XRKtH6Nngs5lKCIA==}
+    dev: false
 
   /require-directory@2.1.1:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}

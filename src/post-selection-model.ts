@@ -2,6 +2,7 @@ import { Modal, Notice, Setting, requestUrl } from "obsidian";
 import HaloPlugin from "./main";
 import { ListedPost } from "@halo-dev/api-client";
 import { HaloSite } from "./settings";
+import i18next from "i18next";
 
 export function openPostSelectionModal(plugin: HaloPlugin, site: HaloSite): Promise<ListedPost> {
   return new Promise<ListedPost>((resolve, reject) => {
@@ -27,7 +28,7 @@ class PostSelectionModal extends Modal {
     const renderPostList = (): void => {
       contentEl.empty();
 
-      contentEl.createEl("h2", { text: "从 Halo 拉取文章" });
+      contentEl.createEl("h2", { text: i18next.t("post_selection_modal.title") });
 
       requestUrl({
         url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts?labelSelector=content.halo.run%2Fdeleted%3Dfalse`,
@@ -42,7 +43,7 @@ class PostSelectionModal extends Modal {
             const setting = new Setting(contentEl).setName(post.post.spec.title).setDesc(post.post.spec.slug);
 
             setting.addButton((button) =>
-              button.setButtonText("拉取").onClick(() => {
+              button.setButtonText(i18next.t("post_selection_modal.button_pull")).onClick(() => {
                 this.onSelect(post);
                 this.close();
               }),
@@ -50,10 +51,12 @@ class PostSelectionModal extends Modal {
           });
         })
         .catch(() => {
-          new Notice("连接失败");
+          new Notice(i18next.t("common.error_connection_failed"));
         })
         .finally(() => {
-          new Setting(contentEl).addButton((button) => button.setButtonText("关闭").onClick(() => this.close()));
+          new Setting(contentEl).addButton((button) =>
+            button.setButtonText(i18next.t("common.button_close")).onClick(() => this.close()),
+          );
         });
     };
 

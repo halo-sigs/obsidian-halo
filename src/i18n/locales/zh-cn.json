@@ -1,0 +1,92 @@
+{
+  "ribbon_icon": {
+    "publish": "发布当前文档到 Halo"
+  },
+  "command": {
+    "publish": {
+      "name": "发布到 Halo",
+      "error_no_matched_site": "此文档发布到的站点未配置"
+    },
+    "publish_with_defaults": {
+      "name": "发布到 Halo（使用默认配置）",
+      "error_no_default_site": "请先配置默认站点"
+    },
+    "update_post": {
+      "name": "从 Halo 更新内容",
+      "error_not_published": "此文档还未发布到 Halo",
+      "error_no_matched_site": "此文档发布到的站点未配置",
+      "success": "已更新"
+    },
+    "pull_post": {
+      "name": "从 Halo 拉取文档",
+      "error_no_sites": "请先配置站点"
+    }
+  },
+  "settings": {
+    "title": "Halo 发布设置",
+    "site": {
+      "name": "Halo 站点",
+      "description": "Halo 站点管理，支持设置多个",
+      "actions": {
+        "open": "打开"
+      }
+    }
+  },
+  "post_selection_modal": {
+    "title": "从 Halo 拉取文章",
+    "button_pull": "拉取"
+  },
+  "site_editing_modal": {
+    "title": "Halo 站点",
+    "settings": {
+      "name": {
+        "name": "站点名称",
+        "description": "Halo 的站点名称"
+      },
+      "url": {
+        "name": "站点地址",
+        "description": "Halo 的站点地址"
+      },
+      "token": {
+        "name": "个人令牌",
+        "description": "可以在个人资料中创建，需要包含文章管理的相关权限"
+      },
+      "default": {
+        "name": "是否设置为默认",
+        "description": "设置为默认的发布站点"
+      },
+      "validate": {
+        "button": "验证",
+        "button_validating": "验证中...",
+        "notice_validated": "验证成功",
+        "error_no_permissions": "当前账号没有文章管理权限"
+      },
+      "save": {
+        "button": "保存"
+      }
+    }
+  },
+  "site_selection_modal": {
+    "title": "选择一个 Halo 站点",
+    "button_choose": "选择"
+  },
+  "sites_modal": {
+    "title": "Halo 站点",
+    "actions": {
+      "set_default": "设为默认",
+      "edit": "编辑",
+      "add": "添加"
+    }
+  },
+  "service": {
+    "error_site_not_match": "站点地址不匹配",
+    "error_publish_failed": "发布失败，请重试",
+    "notice_publish_success": "发布成功",
+    "error_not_published": "此文档还未发布到 Halo",
+    "error_post_not_found": "文章不存在"
+  },
+  "common": {
+    "error_connection_failed": "连接失败",
+    "button_close": "关闭"
+  }
+}

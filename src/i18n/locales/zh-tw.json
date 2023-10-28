@@ -1,0 +1,92 @@
+{
+  "ribbon_icon": {
+    "publish": "發佈當前文件到 Halo"
+  },
+  "command": {
+    "publish": {
+      "name": "發佈到 Halo",
+      "error_no_matched_site": "此文件發佈到的網站未配置"
+    },
+    "publish_with_defaults": {
+      "name": "發佈到 Halo（使用默認配置）",
+      "error_no_default_site": "請先配置默認網站"
+    },
+    "update_post": {
+      "name": "從 Halo 更新內容",
+      "error_not_published": "此文件還未發佈到 Halo",
+      "error_no_matched_site": "此文件發佈到的網站未配置",
+      "success": "已更新"
+    },
+    "pull_post": {
+      "name": "從 Halo 拉取文件",
+      "error_no_sites": "請先配置網站"
+    }
+  },
+  "settings": {
+    "title": "Halo 發佈設置",
+    "site": {
+      "name": "Halo 網站",
+      "description": "Halo 網站管理,支持設置多個",
+      "actions": {
+        "open": "打開"
+      }
+    }
+  },
+  "post_selection_modal": {
+    "title": "從 Halo 拉取文章",
+    "button_pull": "拉取"
+  },
+  "site_editing_modal": {
+    "title": "Halo 網站",
+    "settings": {
+      "name": {
+        "name": "網站名稱",
+        "description": "Halo 的網站名稱"
+      },
+      "url": {
+        "name": "網站地址",
+        "description": "Halo 的網站地址"
+      },
+      "token": {
+        "name": "個人密鑰",
+        "description": "可以在個人資料中創建,需要包含文章管理的相關權限"
+      },
+      "default": {
+        "name": "是否設置為默認",
+        "description": "設置為默認的發佈網站"
+      },
+      "validate": {
+        "button": "驗證",
+        "button_validating": "驗證中...",
+        "notice_validated": "驗證成功",
+        "error_no_permissions": "當前帳號沒有文章管理權限"
+      },
+      "save": {
+        "button": "保存"
+      }
+    }
+  },
+  "site_selection_modal": {
+    "title": "選擇一個 Halo 網站",
+    "button_choose": "選擇"
+  },
+  "sites_modal": {
+    "title": "Halo 網站",
+    "actions": {
+      "set_default": "設為默認",
+      "edit": "編輯",
+      "add": "添加"
+    }
+  },
+  "service": {
+    "error_site_not_match": "網站地址不匹配",
+    "error_publish_failed": "發佈失敗,請重試",
+    "notice_publish_success": "發佈成功",
+    "error_not_published": "此文件還未發佈到 Halo",
+    "error_post_not_found": "文章不存在"
+  },
+  "common": {
+    "error_connection_failed": "連接失敗",
+    "button_close": "關閉"
+  }
+}
