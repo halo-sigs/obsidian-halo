@@ -30,7 +30,7 @@ export default class HaloPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "halo-publish",
+      id: "publish",
       name: i18next.t("command.publish.name"),
       callback: async () => {
         await this.publishCommand();
@@ -38,7 +38,7 @@ export default class HaloPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "halo-publish-with-defaults",
+      id: "publish-with-defaults",
       name: i18next.t("command.publish_with_defaults.name"),
       callback: async () => {
         const site = this.settings.sites.find((site) => site.default);
@@ -54,7 +54,7 @@ export default class HaloPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "halo-update-post",
+      id: "update-post",
       name: i18next.t("command.update_post.name"),
       editorCallback: async () => {
         const { activeEditor } = this.app.workspace;
@@ -87,7 +87,7 @@ export default class HaloPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "halo-pull-post",
+      id: "pull-post",
       name: i18next.t("command.pull_post.name"),
       callback: async () => {
         if (this.settings.sites.length === 0) {
