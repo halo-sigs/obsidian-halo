@@ -28,8 +28,6 @@ export class HaloSettingTab extends PluginSettingTab {
 
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: i18next.t("settings.title") });
-
     new Setting(containerEl)
       .setName(i18next.t("settings.site.name"))
       .setDesc(i18next.t("settings.site.description"))
