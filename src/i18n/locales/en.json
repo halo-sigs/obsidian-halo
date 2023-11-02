@@ -23,9 +23,9 @@
     }
   },
   "settings": {
-    "title": "Halo Publishing Settings",
+    "title": "Halo publishing settings",
     "site": {
-      "name": "Halo Sites",
+      "name": "Halo sites",
       "description": "Halo site management, supports multiple sites",
       "actions": {
         "open": "Open"
@@ -37,10 +37,10 @@
     "button_pull": "Pull"
   },
   "site_editing_modal": {
-    "title": "Halo Site",
+    "title": "Halo site",
     "settings": {
       "name": {
-        "name": "Site Name",
+        "name": "Site name",
         "description": "Halo site name"
       },
       "url": {
@@ -52,7 +52,7 @@
         "description": "Can be created in user profile, need permissions for managing posts"
       },
       "default": {
-        "name": "Set as Default",
+        "name": "Set as default",
         "description": "Set as default publishing site"
       },
       "validate": {
@@ -71,7 +71,7 @@
     "button_choose": "Choose"
   },
   "sites_modal": {
-    "title": "Halo Sites",
+    "title": "Halo sites",
     "actions": {
       "set_default": "Set as default",
       "edit": "Edit",
