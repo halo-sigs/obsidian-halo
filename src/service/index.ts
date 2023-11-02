@@ -86,15 +86,16 @@ class HaloService {
       },
     };
 
-    const { content: raw, data: matterData } = readMatter(await this.app.vault.read(activeEditor.file));
+    const { content: raw } = readMatter(await this.app.vault.read(activeEditor.file));
+    const matterData = this.app.metadataCache.getFileCache(activeEditor.file)?.frontmatter;
 
     // check site url
-    if (matterData.halo?.site && matterData.halo.site !== this.site.url) {
+    if (matterData?.halo?.site && matterData.halo.site !== this.site.url) {
       new Notice(i18next.t("service.error_site_not_match"));
       return;
     }
 
-    if (matterData.halo?.name) {
+    if (matterData?.halo?.name) {
       const post = await this.getPost(matterData.halo.name);
       params = post ? post : params;
     }
@@ -109,16 +110,16 @@ class HaloService {
     }).render(raw);
 
     // restore metadata
-    if (matterData.title) {
+    if (matterData?.title) {
       params.post.spec.title = matterData.title;
     }
 
-    if (matterData.categories) {
+    if (matterData?.categories) {
       const categoryNames = await this.getCategoryNames(matterData.categories);
       params.post.spec.categories = categoryNames;
     }
 
-    if (matterData.tags) {
+    if (matterData?.tags) {
       const tagNames = await this.getTagNames(matterData.tags);
       params.post.spec.tags = tagNames;
     }
@@ -144,7 +145,7 @@ class HaloService {
         });
       } else {
         params.post.metadata.name = randomUUID();
-        params.post.spec.title = matterData.title || activeEditor.file.basename;
+        params.post.spec.title = matterData?.title || activeEditor.file.basename;
         params.post.spec.slug = slugify(params.post.spec.title, { trim: true });
 
         const post = await requestUrl({
@@ -159,7 +160,7 @@ class HaloService {
       }
 
       // Publish post
-      if (matterData.halo?.publish) {
+      if (matterData?.halo?.publish) {
         await requestUrl({
           url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${params.post.metadata.name}/publish`,
           method: "PUT",
@@ -221,10 +222,9 @@ class HaloService {
       return;
     }
 
-    const contentWithMatter = await this.app.vault.read(activeEditor.file);
-    const { data: matterData } = readMatter(contentWithMatter);
+    const matterData = this.app.metadataCache.getFileCache(activeEditor.file)?.frontmatter;
 
-    if (!matterData.halo?.name) {
+    if (!matterData?.halo?.name) {
       new Notice(i18next.t("service.error_not_published"));
       return;
     }

@@ -1,7 +1,6 @@
 import { Notice, Plugin, moment } from "obsidian";
 import { addHaloIcon } from "./icons";
 import { HaloSettingTab, HaloSetting, DEFAULT_SETTINGS, HaloSite } from "./settings";
-import { readMatter } from "./utils/yaml";
 import { openSiteSelectionModal } from "./site-selection-modal";
 import { openPostSelectionModal } from "./post-selection-model";
 import HaloService from "./service";
@@ -63,10 +62,9 @@ export default class HaloPlugin extends Plugin {
           return;
         }
 
-        const contentWithMatter = await this.app.vault.read(activeEditor.file);
-        const { data: matterData } = readMatter(contentWithMatter);
+        const matterData = this.app.metadataCache.getFileCache(activeEditor.file)?.frontmatter;
 
-        if (!matterData.halo?.site) {
+        if (!matterData?.halo?.site) {
           new Notice(i18next.t("command.update_post.error_not_published"));
           return;
         }
@@ -79,7 +77,7 @@ export default class HaloPlugin extends Plugin {
         }
 
         const service = new HaloService(this.app, site);
-        
+
         await service.updatePost();
 
         new Notice(i18next.t("command.update_post.success"));
@@ -128,9 +126,9 @@ export default class HaloPlugin extends Plugin {
       return;
     }
 
-    const { data: matterData } = readMatter(await this.app.vault.read(activeEditor.file));
+    const matterData = this.app.metadataCache.getFileCache(activeEditor.file)?.frontmatter;
 
-    if (matterData.halo?.site) {
+    if (matterData?.halo?.site) {
       const site = this.settings.sites.find((site) => site.url === matterData.halo.site);
 
       if (!site) {
