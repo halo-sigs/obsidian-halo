@@ -3,7 +3,7 @@ import { App, Notice, requestUrl } from "obsidian";
 import { HaloSite } from "../settings";
 import MarkdownIt from "markdown-it";
 import { randomUUID } from "crypto";
-import { readMatter, mergeMatter } from "../utils/yaml";
+import { readMatter } from "../utils/yaml";
 import { slugify } from "transliteration";
 import i18next from "i18next";
 
@@ -184,26 +184,16 @@ class HaloService {
     const postCategories = await this.getCategoryDisplayNames(params.post.spec.categories);
     const postTags = await this.getTagDisplayNames(params.post.spec.tags);
 
-    const modifiedContent = mergeMatter(raw, {
-      title: params.post.spec.title,
-      categories: postCategories,
-      tags: postTags,
-      halo: {
+    this.app.fileManager.processFrontMatter(activeEditor.file, (frontmatter) => {
+      frontmatter.title = params.post.spec.title;
+      frontmatter.categories = postCategories;
+      frontmatter.tags = postTags;
+      frontmatter.halo = {
         site: this.site.url,
         name: params.post.metadata.name,
         publish: params.post.spec.publish,
-      },
+      };
     });
-
-    const editor = activeEditor.editor;
-    if (editor) {
-      const { left, top } = editor.getScrollInfo();
-      const position = editor.getCursor();
-
-      editor.setValue(modifiedContent);
-      editor.scrollTo(left, top);
-      editor.setCursor(position);
-    }
 
     new Notice(i18next.t("service.notice_publish_success"));
   }
@@ -246,29 +236,21 @@ class HaloService {
       return;
     }
 
-    const editor = activeEditor.editor;
-
     const postCategories = await this.getCategoryDisplayNames(post.post.spec.categories);
     const postTags = await this.getTagDisplayNames(post.post.spec.tags);
-    const modifiedContent = mergeMatter(post?.content.raw as string, {
-      title: post.post.spec.title,
-      categories: postCategories,
-      tags: postTags,
-      halo: {
+
+    await this.app.vault.modify(activeEditor.file, post.content.raw + "");
+
+    this.app.fileManager.processFrontMatter(activeEditor.file, (frontmatter) => {
+      frontmatter.title = post.post.spec.title;
+      frontmatter.categories = postCategories;
+      frontmatter.tags = postTags;
+      frontmatter.halo = {
         site: this.site.url,
         name: post.post.metadata.name,
         publish: post.post.spec.publish,
-      },
+      };
     });
-
-    if (editor) {
-      const { left, top } = editor.getScrollInfo();
-      const position = editor.getCursor();
-
-      editor.setValue(modifiedContent);
-      editor.scrollTo(left, top);
-      editor.setCursor(position);
-    }
   }
 
   public async pullPost(name: string): Promise<void> {
@@ -282,20 +264,19 @@ class HaloService {
     const postCategories = await this.getCategoryDisplayNames(post.post.spec.categories);
     const postTags = await this.getTagDisplayNames(post.post.spec.tags);
 
-    const modifiedContent = mergeMatter(post.content.raw as string, {
-      title: post.post.spec.title,
-      categories: postCategories,
-      tags: postTags,
-      halo: {
+    const file = await this.app.vault.create(`${post.post.spec.title}.md`, post.content.raw + "");
+    this.app.workspace.getLeaf().openFile(file);
+
+    this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+      frontmatter.title = post.post.spec.title;
+      frontmatter.categories = postCategories;
+      frontmatter.tags = postTags;
+      frontmatter.halo = {
         site: this.site.url,
         name: name,
         publish: post.post.spec.publish,
-      },
+      };
     });
-
-    const file = await this.app.vault.create(`${post.post.spec.title}.md`, modifiedContent);
-
-    this.app.workspace.getLeaf().openFile(file);
   }
 
   public async getCategoryNames(displayNames: string[]): Promise<string[]> {

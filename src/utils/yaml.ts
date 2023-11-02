@@ -17,7 +17,3 @@ const options = {
 export function readMatter(content: string) {
   return matter(content, options);
 }
-
-export function mergeMatter(content: string, data: object) {
-  return matter.stringify(content, data, options);
-}
