@@ -2,13 +2,24 @@
 
 This plugin allows you to publish your Obsidian documents to [Halo](https://github.com/halo-dev/halo).
 
-> Note: This plugin is still in development, and is not ready for production use.
+[中文文档](./README.zh-CN.md)
+
+## Installation
+
+1. Search for "Halo" in Obsidian's community plugins browser.
+2. Click **Install**.
 
 ## TODO
 
 - [x] i18n
 - [ ] Upload images
-- [ ] Publish this plugin to Obsidian community
+- [x] Publish this plugin to Obsidian community
+
+## Preview
+
+![settings](./images/settings.png)
+
+![commands](./images/commands.png)
 
 ## Development
 
@@ -36,12 +47,6 @@ This plugin allows you to publish your Obsidian documents to [Halo](https://gith
    ```
 
 5. Reload Obsidian and enable the plugin in Settings.
-
-## Preview
-
-![settings](./images/settings.png)
-
-![commands](./images/commands.png)
 
 ## Credits
 
