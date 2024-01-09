@@ -1,7 +1,7 @@
 import { Category, PostRequest, Tag } from "@halo-dev/api-client";
 import { App, Notice, requestUrl } from "obsidian";
 import { HaloSite } from "../settings";
-import MarkdownIt from "markdown-it";
+import markdownIt from "src/utils/markdown";
 import { randomUUID } from "crypto";
 import { readMatter } from "../utils/yaml";
 import { slugify } from "transliteration";
@@ -101,13 +101,7 @@ class HaloService {
     }
 
     params.content.raw = raw;
-    params.content.content = new MarkdownIt({
-      html: true,
-      xhtmlOut: true,
-      breaks: true,
-      linkify: true,
-      typographer: true,
-    }).render(raw);
+    params.content.content = markdownIt.render(raw);
 
     // restore metadata
     if (matterData?.title) {

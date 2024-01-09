@@ -42,6 +42,7 @@
     "i18next": "^23.6.0",
     "js-yaml": "^4.1.0",
     "markdown-it": "^13.0.2",
+    "markdown-it-anchor": "^8.6.7",
     "transliteration": "^2.3.5"
   }
 }
