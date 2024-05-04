@@ -128,6 +128,19 @@ class HaloService {
       params.spec.title = matterData.title;
     }
 
+    if (matterData?.slug) {
+      params.spec.slug = matterData.slug;
+    }
+
+    if (matterData?.excerpt) {
+      params.spec.excerpt.raw = matterData.excerpt;
+      params.spec.excerpt.autoGenerate = false;
+    }
+
+    if (matterData?.cover) {
+      params.spec.cover = matterData.cover;
+    }
+
     if (matterData?.categories) {
       const categoryNames = await this.getCategoryNames(matterData.categories);
       params.spec.categories = categoryNames;
@@ -170,7 +183,7 @@ class HaloService {
       } else {
         params.metadata.name = randomUUID();
         params.spec.title = matterData?.title || activeEditor.file.basename;
-        params.spec.slug = slugify(params.spec.title, { trim: true });
+        params.spec.slug = matterData?.slug || slugify(params.spec.title, { trim: true });
 
         params.metadata.annotations = {
           ...params.metadata.annotations,
@@ -212,6 +225,9 @@ class HaloService {
 
     this.app.fileManager.processFrontMatter(activeEditor.file, (frontmatter) => {
       frontmatter.title = params.spec.title;
+      frontmatter.slug = params.spec.slug;
+      frontmatter.cover = params.spec.cover;
+      frontmatter.excerpt = params.spec.excerpt.autoGenerate ? undefined : params.spec.excerpt.raw;
       frontmatter.categories = postCategories;
       frontmatter.tags = postTags;
       frontmatter.halo = {
@@ -277,6 +293,9 @@ class HaloService {
 
     this.app.fileManager.processFrontMatter(activeEditor.file, (frontmatter) => {
       frontmatter.title = post.post.spec.title;
+      frontmatter.slug = post.post.spec.slug;
+      frontmatter.cover = post.post.spec.cover;
+      frontmatter.excerpt = post.post.spec.excerpt.autoGenerate ? undefined : post.post.spec.excerpt.raw;
       frontmatter.categories = postCategories;
       frontmatter.tags = postTags;
       frontmatter.halo = {
@@ -303,6 +322,9 @@ class HaloService {
 
     this.app.fileManager.processFrontMatter(file, (frontmatter) => {
       frontmatter.title = post.post.spec.title;
+      frontmatter.slug = post.post.spec.slug;
+      frontmatter.cover = post.post.spec.cover;
+      frontmatter.excerpt = post.post.spec.excerpt.autoGenerate ? undefined : post.post.spec.excerpt.raw;
       frontmatter.categories = postCategories;
       frontmatter.tags = postTags;
       frontmatter.halo = {
