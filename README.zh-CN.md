@@ -4,21 +4,34 @@
 
 [English](./README.md)
 
-## 安装
+## 预览
+
+![settings](./images/settings-zh.png)
+
+![commands](./images/commands-zh.png)
+
+## 使用
 
 1. 在 Obsidian 的社区插件市场中搜索 **Halo**。
 2. 点击 **安装**。
+3. 进入设置 -> 社区插件 -> Halo。
+4. 创建一个新站点：
+   1. 站点名称：站点的名称，可选。
+   2. 站点 URL：站点的 URL，例如 `https://example.com`。
+   3. 个人访问令牌：
+      你的 Halo 站点的个人访问令牌，需要具有 `文章管理` 权限。
 
-## TODO
+      ![PAT](./images/pat-zh.png)
 
-- [x] 国际化
-- [ ] 上传图片
-- [x] 发布此插件到 Obsidian 社区
+      有关个人访问令牌的更多信息，请参阅：[个人令牌](https://docs.halo.run/user-guide/user-center#%E4%B8%AA%E4%BA%BA%E4%BB%A4%E7%89%8C)
+   4. 设置为默认：将该站点设置为默认站点。
 
-## 预览
-
-![settings](./images/settings.png)
-![commands](./images/commands.png)
+5. 打开要发布的笔记，并运行命令。
+6. 所有可用的命令：
+   - **Halo: 发布到 Halo**：将当前笔记发布到 Halo。
+   - **Halo: 发布到 Halo（使用默认配置）**：将当前文档发布到默认站点。
+   - **Halo: 从 Halo 拉取文档**：从 Halo 拉取文章到 Obsidian。
+   - **Halo: 从 Halo 更新内容**：从 Halo 更新当前文档的内容。
 
 ## 开发
 
@@ -50,3 +63,9 @@
 ## 致谢
 
 - [obsidian-wordpress](https://github.com/devbean/obsidian-wordpress): 最初的想法来源于这个仓库。
+
+## TODO
+
+- [x] 国际化
+- [ ] 上传图片
+- [x] 发布此插件到 Obsidian 社区

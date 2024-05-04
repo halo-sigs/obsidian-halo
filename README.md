@@ -4,22 +4,34 @@ This plugin allows you to publish your Obsidian documents to [Halo](https://gith
 
 [中文文档](./README.zh-CN.md)
 
-## Installation
+## Preview
+
+![settings](./images/settings-en.png)
+
+![commands](./images/commands-en.png)
+
+## Usage
 
 1. Search for "Halo" in Obsidian's community plugins browser.
 2. Click **Install**.
+3. Go to **Settings** -> **Community Plugins** -> **Halo** and configure the settings.
+4. Create a new site:
+   1. Site name: the name of the site, optional.
+   2. Site URL: the URL of the site, e.g. `https://example.com`.
+   3. Personal access token:
+      The personal access token of your Halo site, needs `Post Manage` permission.
 
-## TODO
+       ![PAT](./images/pat-en.png)
 
-- [x] i18n
-- [ ] Upload images
-- [x] Publish this plugin to Obsidian community
+       More information about personal access token: [Personal Access Token](https://docs.halo.run/user-guide/user-center#%E4%B8%AA%E4%BA%BA%E4%BB%A4%E7%89%8C)
 
-## Preview
-
-![settings](./images/settings.png)
-
-![commands](./images/commands.png)
+   4. Set as default: set the site as the default site.
+5. Open a note you want to publish, and run the command `Halo: Publish to Halo`.
+6. All available commands:
+   - **Halo: Publish to Halo**: publish the current note to Halo.
+   - **Halo: Publish to Halo (use default settings)**: publish the current note to the default site.
+   - **Halo: Pull posts from Halo**: pull posts from Halo to Obsidian.
+   - **Halo: Update content from Halo**: update the content of the current note from Halo.
 
 ## Development
 
@@ -51,3 +63,9 @@ This plugin allows you to publish your Obsidian documents to [Halo](https://gith
 ## Credits
 
 - [obsidian-wordpress](https://github.com/devbean/obsidian-wordpress): the original idea came from this repo.
+
+## TODO
+
+- [x] i18n
+- [ ] Upload images
+- [x] Publish this plugin to Obsidian community
