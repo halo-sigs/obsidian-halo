@@ -47,7 +47,7 @@ export default class HaloPlugin extends Plugin {
           return;
         }
 
-        const service = new HaloService(this.app, site);
+        const service = new HaloService(this.app, this.settings, site);
         await service.publishPost();
       },
     });
@@ -76,7 +76,7 @@ export default class HaloPlugin extends Plugin {
           return;
         }
 
-        const service = new HaloService(this.app, site);
+        const service = new HaloService(this.app, this.settings, site);
 
         await service.updatePost();
 
@@ -101,7 +101,7 @@ export default class HaloPlugin extends Plugin {
 
         const post = await openPostSelectionModal(this, site);
 
-        const service = new HaloService(this.app, site);
+        const service = new HaloService(this.app, this.settings, site);
         await service.pullPost(post.post.metadata.name);
       },
     });
@@ -136,13 +136,13 @@ export default class HaloPlugin extends Plugin {
         return;
       }
 
-      const service = new HaloService(this.app, site);
+      const service = new HaloService(this.app, this.settings, site);
       await service.publishPost();
       return;
     }
 
     const site = await openSiteSelectionModal(this);
-    const service = new HaloService(this.app, site);
+    const service = new HaloService(this.app, this.settings, site);
     await service.publishPost();
   }
 }

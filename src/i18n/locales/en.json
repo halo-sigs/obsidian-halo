@@ -30,6 +30,10 @@
       "actions": {
         "open": "Open"
       }
+    },
+    "publishByDefault": {
+      "name": "Publish post by default",
+      "description": "After checking, the first post created will be published directly"
     }
   },
   "post_selection_modal": {

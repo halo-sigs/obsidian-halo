@@ -12,10 +12,12 @@ export interface HaloSite {
 
 export interface HaloSetting {
   sites: HaloSite[];
+  publishByDefault: boolean;
 }
 
 export const DEFAULT_SETTINGS: HaloSetting = {
   sites: [],
+  publishByDefault: false,
 };
 
 export class HaloSettingTab extends PluginSettingTab {
@@ -36,5 +38,15 @@ export class HaloSettingTab extends PluginSettingTab {
           new HaloSitesModal(this.plugin).open();
         }),
       );
+
+    new Setting(containerEl)
+      .setName(i18next.t("settings.publishByDefault.name"))
+      .setDesc(i18next.t("settings.publishByDefault.description"))
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.settings.publishByDefault).onChange((value) => {
+          this.plugin.settings.publishByDefault = value;
+          this.plugin.saveSettings();
+        });
+      });
   }
 }

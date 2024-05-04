@@ -1,6 +1,6 @@
 import { Category, Content, Post, Snapshot, Tag } from "@halo-dev/api-client";
 import { App, Notice, requestUrl } from "obsidian";
-import { HaloSite } from "../settings";
+import { HaloSetting, HaloSite } from "../settings";
 import markdownIt from "src/utils/markdown";
 import { randomUUID } from "crypto";
 import { readMatter } from "../utils/yaml";
@@ -10,10 +10,12 @@ import i18next from "i18next";
 class HaloService {
   private readonly site: HaloSite;
   private readonly app: App;
+  private readonly settings: HaloSetting;
   private readonly headers: Record<string, string> = {};
 
-  constructor(app: App, site: HaloSite) {
+  constructor(app: App, settings: HaloSetting, site: HaloSite) {
     this.app = app;
+    this.settings = settings;
     this.site = site;
 
     this.headers = {
@@ -187,20 +189,16 @@ class HaloService {
       }
 
       // Publish post
-      if (matterData?.halo?.publish) {
-        await requestUrl({
-          url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${params.metadata.name}/publish`,
-          method: "PUT",
-          contentType: "application/json",
-          headers: this.headers,
-        });
+      if (matterData?.halo?.hasOwnProperty("publish")) {
+        if (matterData?.halo?.publish) {
+          await this.changePostPublish(params.metadata.name, true);
+        } else {
+          await this.changePostPublish(params.metadata.name, false);
+        }
       } else {
-        await requestUrl({
-          url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${params.metadata.name}/unpublish`,
-          method: "PUT",
-          contentType: "application/json",
-          headers: this.headers,
-        });
+        if (this.settings.publishByDefault) {
+          await this.changePostPublish(params.metadata.name, true);
+        }
       }
 
       params = (await this.getPost(params.metadata.name))?.post || params;
@@ -224,6 +222,15 @@ class HaloService {
     });
 
     new Notice(i18next.t("service.notice_publish_success"));
+  }
+
+  public async changePostPublish(name: string, publish: boolean): Promise<void> {
+    await requestUrl({
+      url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${name}/${publish ? "publish" : "unpublish"}`,
+      method: "PUT",
+      contentType: "application/json",
+      headers: this.headers,
+    });
   }
 
   public async getCategories(): Promise<Category[]> {

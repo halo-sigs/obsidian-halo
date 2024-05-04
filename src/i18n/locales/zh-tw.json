@@ -30,6 +30,10 @@
       "actions": {
         "open": "打開"
       }
+    },
+    "publishByDefault": {
+      "name": "默认發布文章",
+      "description": "勾選之後，首次建立文章將直接發布"
     }
   },
   "post_selection_modal": {
