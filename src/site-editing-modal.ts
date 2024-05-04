@@ -93,7 +93,7 @@ export class SiteEditingModal extends Modal {
               },
             })
               .then((response) => {
-                if (response.json.uiPermissions.includes("system:posts:manage")) {
+                if (response.json.uiPermissions.includes("uc:posts:manage")) {
                   new Notice(i18next.t("site_editing_modal.settings.validate.notice_validated"));
                 } else {
                   new Notice(i18next.t("site_editing_modal.settings.validate.error_no_permissions"));

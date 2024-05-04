@@ -1,4 +1,4 @@
-import { Category, PostRequest, Tag } from "@halo-dev/api-client";
+import { Category, Content, Post, Snapshot, Tag } from "@halo-dev/api-client";
 import { App, Notice, requestUrl } from "obsidian";
 import { HaloSite } from "../settings";
 import markdownIt from "src/utils/markdown";
@@ -22,21 +22,32 @@ class HaloService {
     };
   }
 
-  public async getPost(name: string): Promise<PostRequest | undefined> {
+  public async getPost(name: string): Promise<{ post: Post; content: Content } | undefined> {
     try {
-      const post = await requestUrl({
-        url: `${this.site.url}/apis/content.halo.run/v1alpha1/posts/${name}`,
+      const post = (await requestUrl({
+        url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${name}`,
         headers: this.headers,
-      });
+      }).json) as Post;
 
-      const content = await requestUrl({
-        url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${name}/head-content`,
+      const snapshot = (await requestUrl({
+        url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/c5e44ee4-f561-41f0-8bfe-f7259872fa20/draft?patched=true`,
         headers: this.headers,
-      });
+      }).json) as Snapshot;
+
+      const { "content.halo.run/patched-content": patchedContent, "content.halo.run/patched-raw": patchedRaw } =
+        snapshot.metadata.annotations || {};
+
+      const { rawType } = snapshot.spec || {};
+
+      const content: Content = {
+        content: patchedContent,
+        raw: patchedRaw,
+        rawType,
+      };
 
       return Promise.resolve({
-        post: post.json,
-        content: content.json,
+        post,
+        content,
       });
     } catch (error) {
       return Promise.resolve(undefined);
@@ -50,40 +61,43 @@ class HaloService {
       return;
     }
 
-    let params: PostRequest = {
-      post: {
-        spec: {
-          title: "",
-          slug: "",
-          template: "",
-          cover: "",
-          deleted: false,
-          publish: false,
-          publishTime: undefined,
-          pinned: false,
-          allowComment: true,
-          visible: "PUBLIC",
-          priority: 0,
-          excerpt: {
-            autoGenerate: true,
-            raw: "",
-          },
-          categories: [],
-          tags: [],
-          htmlMetas: [],
-        },
-        apiVersion: "content.halo.run/v1alpha1",
-        kind: "Post",
-        metadata: {
-          name: "",
-          annotations: {},
-        },
+    let params: Post = {
+      apiVersion: "content.halo.run/v1alpha1",
+      kind: "Post",
+      metadata: {
+        annotations: {},
+        name: "",
       },
-      content: {
-        raw: "",
-        content: "",
-        rawType: "markdown",
+      spec: {
+        allowComment: true,
+        baseSnapshot: "",
+        categories: [],
+        cover: "",
+        deleted: false,
+        excerpt: {
+          autoGenerate: true,
+          raw: "",
+        },
+        headSnapshot: "",
+        htmlMetas: [],
+        owner: "",
+        pinned: false,
+        priority: 0,
+        publish: false,
+        publishTime: "",
+        releaseSnapshot: "",
+        slug: "",
+        tags: [],
+        template: "",
+        title: "",
+        visible: "PUBLIC",
       },
+    };
+
+    let content: Content = {
+      rawType: "markdown",
+      raw: "",
+      content: "",
     };
 
     const { content: raw } = readMatter(await this.app.vault.read(activeEditor.file));
@@ -97,96 +111,115 @@ class HaloService {
 
     if (matterData?.halo?.name) {
       const post = await this.getPost(matterData.halo.name);
-      params = post ? post : params;
+
+      if (post) {
+        params = post.post;
+        content = post.content;
+      }
     }
 
-    params.content.raw = raw;
-    params.content.content = markdownIt.render(raw);
+    content.raw = raw;
+    content.content = markdownIt.render(raw);
 
     // restore metadata
     if (matterData?.title) {
-      params.post.spec.title = matterData.title;
+      params.spec.title = matterData.title;
     }
 
     if (matterData?.categories) {
       const categoryNames = await this.getCategoryNames(matterData.categories);
-      params.post.spec.categories = categoryNames;
+      params.spec.categories = categoryNames;
     }
 
     if (matterData?.tags) {
       const tagNames = await this.getTagNames(matterData.tags);
-      params.post.spec.tags = tagNames;
+      params.spec.tags = tagNames;
     }
 
     try {
-      if (params.post.metadata.name) {
-        const { name } = params.post.metadata;
+      if (params.metadata.name) {
+        const { name } = params.metadata;
 
         await requestUrl({
-          url: `${this.site.url}/apis/content.halo.run/v1alpha1/posts/${name}`,
+          url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${name}`,
           method: "PUT",
           contentType: "application/json",
           headers: this.headers,
-          body: JSON.stringify(params.post),
+          body: JSON.stringify(params),
         });
 
+        const snapshot = (await requestUrl({
+          url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${name}/draft?patched=true`,
+          headers: this.headers,
+        }).json) as Snapshot;
+
+        snapshot.metadata.annotations = {
+          ...snapshot.metadata.annotations,
+          "content.halo.run/content-json": JSON.stringify(content),
+        };
+
         await requestUrl({
-          url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${params.post.metadata.name}/content`,
+          url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${name}/draft`,
           method: "PUT",
           contentType: "application/json",
           headers: this.headers,
-          body: JSON.stringify(params.content),
+          body: JSON.stringify(snapshot),
         });
       } else {
-        params.post.metadata.name = randomUUID();
-        params.post.spec.title = matterData?.title || activeEditor.file.basename;
-        params.post.spec.slug = slugify(params.post.spec.title, { trim: true });
+        params.metadata.name = randomUUID();
+        params.spec.title = matterData?.title || activeEditor.file.basename;
+        params.spec.slug = slugify(params.spec.title, { trim: true });
+
+        params.metadata.annotations = {
+          ...params.metadata.annotations,
+          "content.halo.run/content-json": JSON.stringify(content),
+        };
 
         const post = await requestUrl({
-          url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts`,
+          url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts`,
           method: "POST",
           contentType: "application/json",
           headers: this.headers,
           body: JSON.stringify(params),
         }).json;
 
-        params.post = post;
+        params = post;
       }
 
       // Publish post
       if (matterData?.halo?.publish) {
         await requestUrl({
-          url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${params.post.metadata.name}/publish`,
+          url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${params.metadata.name}/publish`,
           method: "PUT",
           contentType: "application/json",
           headers: this.headers,
         });
       } else {
         await requestUrl({
-          url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts/${params.post.metadata.name}/unpublish`,
+          url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${params.metadata.name}/unpublish`,
           method: "PUT",
           contentType: "application/json",
           headers: this.headers,
         });
       }
 
-      params = (await this.getPost(params.post.metadata.name)) || params;
+      params = (await this.getPost(params.metadata.name))?.post || params;
     } catch (error) {
       new Notice(i18next.t("service.error_publish_failed"));
       return;
     }
 
-    const postCategories = await this.getCategoryDisplayNames(params.post.spec.categories);
-    const postTags = await this.getTagDisplayNames(params.post.spec.tags);
+    const postCategories = await this.getCategoryDisplayNames(params.spec.categories);
+    const postTags = await this.getTagDisplayNames(params.spec.tags);
 
     this.app.fileManager.processFrontMatter(activeEditor.file, (frontmatter) => {
-      frontmatter.title = params.post.spec.title;
+      frontmatter.title = params.spec.title;
       frontmatter.categories = postCategories;
       frontmatter.tags = postTags;
       frontmatter.halo = {
         site: this.site.url,
-        name: params.post.metadata.name,
-        publish: params.post.spec.publish,
+        name: params.metadata.name,
+        publish: params.spec.publish,
       };
     });
 

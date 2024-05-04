@@ -31,7 +31,7 @@ class PostSelectionModal extends Modal {
       contentEl.createEl("h2", { text: i18next.t("post_selection_modal.title") });
 
       requestUrl({
-        url: `${this.site.url}/apis/api.console.halo.run/v1alpha1/posts?labelSelector=content.halo.run%2Fdeleted%3Dfalse`,
+        url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts?labelSelector=content.halo.run%2Fdeleted%3Dfalse`,
         headers: {
           Authorization: `Bearer ${this.site.token}`,
         },
