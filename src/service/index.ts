@@ -32,7 +32,7 @@ class HaloService {
       }).json) as Post;
 
       const snapshot = (await requestUrl({
-        url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/c5e44ee4-f561-41f0-8bfe-f7259872fa20/draft?patched=true`,
+        url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${name}/draft?patched=true`,
         headers: this.headers,
       }).json) as Snapshot;
 
