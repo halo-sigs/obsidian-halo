@@ -1,7 +1,7 @@
-import { Modal, Setting } from "obsidian";
-import HaloPlugin from "./main";
-import { HaloSite } from "./settings";
 import i18next from "i18next";
+import { Modal, Setting } from "obsidian";
+import type HaloPlugin from "./main";
+import type { HaloSite } from "./settings";
 
 export function openSiteSelectionModal(plugin: HaloPlugin): Promise<HaloSite> {
   return new Promise<HaloSite>((resolve, reject) => {
@@ -30,9 +30,11 @@ class SiteSelectionModal extends Modal {
     const renderContent = (): void => {
       contentEl.empty();
 
-      contentEl.createEl("h2", { text: i18next.t("site_selection_modal.title") });
+      contentEl.createEl("h2", {
+        text: i18next.t("site_selection_modal.title"),
+      });
 
-      this.sites.forEach((site) => {
+      for (const site of this.sites) {
         const setting = new Setting(contentEl).setName(site.name).setDesc(site.url);
 
         setting.addButton((button) =>
@@ -41,7 +43,7 @@ class SiteSelectionModal extends Modal {
             this.close();
           }),
         );
-      });
+      }
 
       new Setting(contentEl).addButton((button) =>
         button.setButtonText(i18next.t("common.button_close")).onClick(() => this.close()),

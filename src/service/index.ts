@@ -1,11 +1,11 @@
-import { Category, Content, Post, Snapshot, Tag } from "@halo-dev/api-client";
-import { App, Notice, requestUrl } from "obsidian";
-import { HaloSetting, HaloSite } from "../settings";
-import markdownIt from "src/utils/markdown";
-import { randomUUID } from "crypto";
-import { readMatter } from "../utils/yaml";
-import { slugify } from "transliteration";
+import { randomUUID } from "node:crypto";
+import type { Category, Content, Post, Snapshot, Tag } from "@halo-dev/api-client";
 import i18next from "i18next";
+import { type App, Notice, requestUrl } from "obsidian";
+import markdownIt from "src/utils/markdown";
+import { slugify } from "transliteration";
+import type { HaloSetting, HaloSite } from "../settings";
+import { readMatter } from "../utils/yaml";
 
 class HaloService {
   private readonly site: HaloSite;
@@ -202,7 +202,7 @@ class HaloService {
       }
 
       // Publish post
-      if (matterData?.halo?.hasOwnProperty("publish")) {
+      if (matterData?.halo?.hasOwn("publish")) {
         if (matterData?.halo?.publish) {
           await this.changePostPublish(params.metadata.name, true);
         } else {
@@ -289,7 +289,7 @@ class HaloService {
     const postCategories = await this.getCategoryDisplayNames(post.post.spec.categories);
     const postTags = await this.getTagDisplayNames(post.post.spec.tags);
 
-    await this.app.vault.modify(activeEditor.file, post.content.raw + "");
+    await this.app.vault.modify(activeEditor.file, `${post.content.raw}`);
 
     this.app.fileManager.processFrontMatter(activeEditor.file, (frontmatter) => {
       frontmatter.title = post.post.spec.title;
@@ -317,7 +317,7 @@ class HaloService {
     const postCategories = await this.getCategoryDisplayNames(post.post.spec.categories);
     const postTags = await this.getTagDisplayNames(post.post.spec.tags);
 
-    const file = await this.app.vault.create(`${post.post.spec.title}.md`, post.content.raw + "");
+    const file = await this.app.vault.create(`${post.post.spec.title}.md`, `${post.content.raw}`);
     this.app.workspace.getLeaf().openFile(file);
 
     this.app.fileManager.processFrontMatter(file, (frontmatter) => {

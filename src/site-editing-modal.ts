@@ -1,7 +1,7 @@
-import { Modal, Setting, requestUrl, Notice } from "obsidian";
-import HaloPlugin from "./main";
-import { HaloSite } from "./settings";
 import i18next from "i18next";
+import { Modal, Notice, Setting, requestUrl } from "obsidian";
+import type HaloPlugin from "./main";
+import type { HaloSite } from "./settings";
 
 export function openSiteEditingModal(
   plugin: HaloPlugin,
@@ -24,13 +24,8 @@ export class SiteEditingModal extends Modal {
 
   constructor(
     private readonly plugin: HaloPlugin,
-    private readonly site: HaloSite = {
-      name: "",
-      url: "",
-      token: "",
-      default: false,
-    },
-    private readonly index: number = -1,
+    private readonly site: HaloSite,
+    private readonly index: number,
     private readonly onSubmit: (site: HaloSite, index?: number) => void,
   ) {
     super(app);

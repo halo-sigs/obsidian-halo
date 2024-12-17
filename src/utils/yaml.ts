@@ -1,5 +1,5 @@
-import yaml from "js-yaml";
 import matter from "gray-matter";
+import yaml from "js-yaml";
 
 const options = {
   engines: {

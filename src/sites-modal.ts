@@ -1,7 +1,7 @@
-import { Modal, Setting } from "obsidian";
-import HaloPlugin from "./main";
-import { openSiteEditingModal } from "./site-editing-modal";
 import i18next from "i18next";
+import { Modal, Setting } from "obsidian";
+import type HaloPlugin from "./main";
+import { openSiteEditingModal } from "./site-editing-modal";
 
 export class HaloSitesModal extends Modal {
   constructor(private readonly plugin: HaloPlugin) {
@@ -22,7 +22,10 @@ export class HaloSitesModal extends Modal {
         if (!site.default) {
           setting.addButton((button) =>
             button.setButtonText(i18next.t("sites_modal.actions.set_default")).onClick(() => {
-              this.plugin.settings.sites.forEach((site) => (site.default = false));
+              for (const site of this.plugin.settings.sites) {
+                site.default = false;
+              }
+
               site.default = true;
               this.plugin.saveSettings();
               renderContent();
@@ -55,14 +58,14 @@ export class HaloSitesModal extends Modal {
         button.setButtonText(i18next.t("sites_modal.actions.add")).onClick(async () => {
           const { site } = await openSiteEditingModal(this.plugin);
 
-          if (this.plugin.settings.sites.length == 0) {
+          if (this.plugin.settings.sites.length === 0) {
             site.default = true;
           }
 
           if (site.default) {
-            this.plugin.settings.sites.forEach((site) => {
+            for (const site of this.plugin.settings.sites) {
               site.default = false;
-            });
+            }
           }
 
           this.plugin.settings.sites.push(site);

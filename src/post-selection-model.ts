@@ -1,8 +1,8 @@
-import { Modal, Notice, Setting, requestUrl } from "obsidian";
-import HaloPlugin from "./main";
-import { ListedPost } from "@halo-dev/api-client";
-import { HaloSite } from "./settings";
+import type { ListedPost } from "@halo-dev/api-client";
 import i18next from "i18next";
+import { Modal, Notice, Setting, requestUrl } from "obsidian";
+import type HaloPlugin from "./main";
+import type { HaloSite } from "./settings";
 
 export function openPostSelectionModal(plugin: HaloPlugin, site: HaloSite): Promise<ListedPost> {
   return new Promise<ListedPost>((resolve, reject) => {
@@ -28,7 +28,9 @@ class PostSelectionModal extends Modal {
     const renderPostList = (): void => {
       contentEl.empty();
 
-      contentEl.createEl("h2", { text: i18next.t("post_selection_modal.title") });
+      contentEl.createEl("h2", {
+        text: i18next.t("post_selection_modal.title"),
+      });
 
       requestUrl({
         url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts?labelSelector=content.halo.run%2Fdeleted%3Dfalse`,
@@ -39,7 +41,7 @@ class PostSelectionModal extends Modal {
         .then((response) => {
           const posts: ListedPost[] = response.json.items;
 
-          posts.forEach((post) => {
+          for (const post of posts) {
             const setting = new Setting(contentEl).setName(post.post.spec.title).setDesc(post.post.spec.slug);
 
             setting.addButton((button) =>
@@ -48,7 +50,7 @@ class PostSelectionModal extends Modal {
                 this.close();
               }),
             );
-          });
+          }
         })
         .catch(() => {
           new Notice(i18next.t("common.error_connection_failed"));

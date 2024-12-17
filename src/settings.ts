@@ -1,7 +1,7 @@
-import { PluginSettingTab, Setting } from "obsidian";
-import HaloPlugin from "./main";
-import { HaloSitesModal } from "./sites-modal";
 import i18next from "i18next";
+import { PluginSettingTab, Setting } from "obsidian";
+import type HaloPlugin from "./main";
+import { HaloSitesModal } from "./sites-modal";
 
 export interface HaloSite {
   name: string;

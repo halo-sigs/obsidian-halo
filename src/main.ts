@@ -1,11 +1,11 @@
+import i18next from "i18next";
 import { Notice, Plugin, moment } from "obsidian";
+import { resources } from "./i18n";
 import { addHaloIcon } from "./icons";
-import { HaloSettingTab, HaloSetting, DEFAULT_SETTINGS, HaloSite } from "./settings";
-import { openSiteSelectionModal } from "./site-selection-modal";
 import { openPostSelectionModal } from "./post-selection-model";
 import HaloService from "./service";
-import i18next from "i18next";
-import { resources } from "./i18n";
+import { DEFAULT_SETTINGS, type HaloSetting, HaloSettingTab, type HaloSite } from "./settings";
+import { openSiteSelectionModal } from "./site-selection-modal";
 
 export default class HaloPlugin extends Plugin {
   settings: HaloSetting;
