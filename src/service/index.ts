@@ -1,5 +1,5 @@
-// biome-ignore format: no
-import { randomUUID } from "node:crypto";
+// biome-ignore lint: no
+import { randomUUID } from "crypto";
 import type { Category, Content, Post, Snapshot, Tag } from "@halo-dev/api-client";
 import i18next from "i18next";
 import { type App, Notice, requestUrl } from "obsidian";
@@ -203,7 +203,8 @@ class HaloService {
       }
 
       // Publish post
-      if (matterData?.halo?.hasOwn("publish")) {
+      // biome-ignore lint: no
+      if (matterData?.halo?.hasOwnProperty("publish")) {
         if (matterData?.halo?.publish) {
           await this.changePostPublish(params.metadata.name, true);
         } else {
