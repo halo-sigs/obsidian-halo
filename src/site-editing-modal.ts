@@ -9,12 +9,17 @@ export function openSiteEditingModal(
   index = -1,
 ): Promise<{ site: HaloSite; index?: number }> {
   return new Promise((resolve, reject) => {
-    const modal = new SiteEditingModal(plugin, site, index, (site, index) => {
-      resolve({
-        site,
-        index,
-      });
-    });
+    const modal = new SiteEditingModal(
+      plugin,
+      site || { name: "", url: "", default: false, token: "" },
+      index,
+      (site, index) => {
+        resolve({
+          site,
+          index,
+        });
+      },
+    );
     modal.open();
   });
 }

@@ -1,3 +1,4 @@
+// biome-ignore format: no
 import { randomUUID } from "node:crypto";
 import type { Category, Content, Post, Snapshot, Tag } from "@halo-dev/api-client";
 import i18next from "i18next";
