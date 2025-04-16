@@ -1,12 +1,10 @@
-// biome-ignore lint: no
-import { randomUUID } from "crypto";
 import type { Category, Content, Post, Snapshot, Tag } from "@halo-dev/api-client";
 import i18next from "i18next";
 import { type App, Notice, requestUrl } from "obsidian";
+import { randomUUID } from "src/utils/id";
 import markdownIt from "src/utils/markdown";
 import { slugify } from "transliteration";
 import type { HaloSetting, HaloSite } from "../settings";
-import { readMatter } from "../utils/yaml";
 
 class HaloService {
   private readonly site: HaloSite;
@@ -103,8 +101,11 @@ class HaloService {
       content: "",
     };
 
-    const { content: raw } = readMatter(await this.app.vault.read(activeEditor.file));
+    const md = await this.app.vault.read(activeEditor.file);
     const matterData = this.app.metadataCache.getFileCache(activeEditor.file)?.frontmatter;
+    const frontmatterPosition = this.app.metadataCache.getFileCache(activeEditor.file)?.frontmatterPosition;
+
+    const raw = frontmatterPosition ? md.slice(frontmatterPosition?.end.offset) : md;
 
     // check site url
     if (matterData?.halo?.site && matterData.halo.site !== this.site.url) {
