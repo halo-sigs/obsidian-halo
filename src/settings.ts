@@ -22,7 +22,7 @@ export const DEFAULT_SETTINGS: HaloSetting = {
 
 export class HaloSettingTab extends PluginSettingTab {
   constructor(private readonly plugin: HaloPlugin) {
-    super(app, plugin);
+    super(plugin.app, plugin);
   }
 
   display() {

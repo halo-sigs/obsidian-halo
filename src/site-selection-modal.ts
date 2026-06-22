@@ -19,7 +19,7 @@ class SiteSelectionModal extends Modal {
     private readonly plugin: HaloPlugin,
     private readonly onSelect: (site: HaloSite) => void,
   ) {
-    super(app);
+    super(plugin.app);
 
     this.sites = plugin.settings.sites;
   }

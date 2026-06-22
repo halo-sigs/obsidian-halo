@@ -33,7 +33,7 @@ export class SiteEditingModal extends Modal {
     private readonly index: number,
     private readonly onSubmit: (site: HaloSite, index?: number) => void,
   ) {
-    super(app);
+    super(plugin.app);
 
     this.currentSite = Object.assign({}, site);
   }

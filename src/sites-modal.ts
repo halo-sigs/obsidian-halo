@@ -5,7 +5,7 @@ import { openSiteEditingModal } from "./site-editing-modal";
 
 export class HaloSitesModal extends Modal {
   constructor(private readonly plugin: HaloPlugin) {
-    super(app);
+    super(plugin.app);
   }
 
   onOpen(): void {

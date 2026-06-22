@@ -19,7 +19,7 @@ class PostSelectionModal extends Modal {
     private readonly site: HaloSite,
     private readonly onSelect: (post: ListedPost) => void,
   ) {
-    super(app);
+    super(plugin.app);
   }
 
   onOpen() {
