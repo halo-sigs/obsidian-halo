@@ -46,6 +46,7 @@ export default defineConfig({
         minify: {
           js: true,
         },
+        filename: "main.js",
       },
     },
   ],
