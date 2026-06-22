@@ -2,6 +2,7 @@
   "name": "@halo-dev/obsidian-halo",
   "private": true,
   "version": "1.1.1",
+  "type": "module",
   "description": "Halo's Obsidian integration supports publishing content to Halo sites",
   "main": "main.js",
   "scripts": {
@@ -21,23 +22,23 @@
   "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@rslib/core": "^0.1.5",
+    "@rslib/core": "^0.23.0",
     "@types/js-yaml": "^4.0.9",
     "@types/markdown-it": "^12.2.3",
-    "@types/node": "^18.19.86",
+    "@types/node": "^24.13.2",
     "builtin-modules": "3.3.0",
     "obsidian": "latest",
     "tslib": "2.6.0",
     "typescript": "5.1.6"
   },
   "dependencies": {
-    "@halo-dev/api-client": "^2.20.0",
+    "@halo-dev/api-client": "^2.25.2",
     "gray-matter": "^4.0.3",
     "i18next": "^23.16.8",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.2.0",
     "markdown-it": "^13.0.2",
     "markdown-it-anchor": "^8.6.7",
-    "transliteration": "^2.3.5"
+    "transliteration": "^2.6.1"
   },
-  "packageManager": "pnpm@10.8.1+sha512.c50088ba998c67b8ca8c99df8a5e02fd2ae2e2b29aaf238feaa9e124248d3f48f9fb6db2424949ff901cffbb5e0f0cc1ad6aedb602cd29450751d11c35023677"
+  "packageManager": "pnpm@10.34.4"
 }
