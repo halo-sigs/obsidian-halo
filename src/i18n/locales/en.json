@@ -5,6 +5,7 @@
   "command": {
     "publish": {
       "name": "Publish to Halo",
+      "error_no_sites": "Please configure sites first",
       "error_no_matched_site": "The site this document publishes to is not configured"
     },
     "publish_with_defaults": {
@@ -20,6 +21,11 @@
     "pull_post": {
       "name": "Pull posts from Halo",
       "error_no_sites": "Please configure sites first"
+    },
+    "upload_images": {
+      "name": "Upload images to Halo",
+      "error_no_sites": "Please configure sites first",
+      "error_no_matched_site": "The site this document publishes to is not configured"
     }
   },
   "settings": {
@@ -87,7 +93,10 @@
     "error_publish_failed": "Publishing failed, please retry",
     "notice_publish_success": "Published successfully",
     "error_not_published": "This document is not published to Halo yet",
-    "error_post_not_found": "Post does not exist"
+    "error_post_not_found": "Post does not exist",
+    "notice_no_images_to_upload": "No local images to upload",
+    "notice_upload_images_success": "Uploaded {{count}} image(s)",
+    "notice_upload_images_partial": "Uploaded {{count}} image(s), {{failed}} failed"
   },
   "common": {
     "error_connection_failed": "Connection failed",

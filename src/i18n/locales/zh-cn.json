@@ -5,6 +5,7 @@
   "command": {
     "publish": {
       "name": "发布到 Halo",
+      "error_no_sites": "请先配置站点",
       "error_no_matched_site": "此文档发布到的站点未配置"
     },
     "publish_with_defaults": {
@@ -20,6 +21,11 @@
     "pull_post": {
       "name": "从 Halo 拉取文档",
       "error_no_sites": "请先配置站点"
+    },
+    "upload_images": {
+      "name": "上传图片到 Halo",
+      "error_no_sites": "请先配置站点",
+      "error_no_matched_site": "此文档发布到的站点未配置"
     }
   },
   "settings": {
@@ -87,7 +93,10 @@
     "error_publish_failed": "发布失败，请重试",
     "notice_publish_success": "发布成功",
     "error_not_published": "此文档还未发布到 Halo",
-    "error_post_not_found": "文章不存在"
+    "error_post_not_found": "文章不存在",
+    "notice_no_images_to_upload": "没有需要上传的本地图片",
+    "notice_upload_images_success": "已上传 {{count}} 张图片",
+    "notice_upload_images_partial": "已上传 {{count}} 张图片，{{failed}} 张失败"
   },
   "common": {
     "error_connection_failed": "连接失败",

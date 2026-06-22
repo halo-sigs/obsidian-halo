@@ -1,25 +1,59 @@
-import type { Category, Content, Post, Snapshot, Tag } from "@halo-dev/api-client";
+import type { Attachment, Category, Content, Post, Snapshot, Tag } from "@halo-dev/api-client";
 import i18next from "i18next";
-import { type App, Notice, requestUrl } from "obsidian";
+import { type App, Notice, TFile, getLinkpath, normalizePath, requestUrl } from "obsidian";
 import { randomUUID } from "src/utils/id";
 import markdownIt from "src/utils/markdown";
 import { slugify } from "transliteration";
 import type { HaloSetting, HaloSite } from "../settings";
+
+interface LocalImageReference {
+  file: TFile;
+  start: number;
+  end: number;
+  replacement: (permalink: string) => string;
+}
+
+interface MarkdownImageTarget {
+  path: string;
+  rawPath: string;
+  start: number;
+}
+
+const IMAGE_EXTENSIONS = new Set(["avif", "bmp", "gif", "ico", "jpeg", "jpg", "png", "svg", "tif", "tiff", "webp"]);
+
+const IMAGE_MIME_TYPES: Record<string, string> = {
+  avif: "image/avif",
+  bmp: "image/bmp",
+  gif: "image/gif",
+  ico: "image/x-icon",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  png: "image/png",
+  svg: "image/svg+xml",
+  tif: "image/tiff",
+  tiff: "image/tiff",
+  webp: "image/webp",
+};
 
 class HaloService {
   private readonly site: HaloSite;
   private readonly app: App;
   private readonly settings: HaloSetting;
   private readonly headers: Record<string, string> = {};
+  private readonly authHeaders: Record<string, string> = {};
 
   constructor(app: App, settings: HaloSetting, site: HaloSite) {
     this.app = app;
     this.settings = settings;
     this.site = site;
 
+    this.authHeaders = {
+      Authorization: `Bearer ${site.token}`,
+    };
+
     this.headers = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${site.token}`,
+      ...this.authHeaders,
     };
   }
 
@@ -338,6 +372,96 @@ class HaloService {
     });
   }
 
+  public async uploadImages(options: { silent?: boolean } = {}): Promise<number> {
+    const { activeEditor } = this.app.workspace;
+
+    if (!activeEditor || !activeEditor.file) {
+      return 0;
+    }
+
+    const md = await this.app.vault.read(activeEditor.file);
+    const imageReferences = this.collectLocalImageReferences(md, activeEditor.file);
+
+    if (imageReferences.length === 0) {
+      if (!options.silent) {
+        new Notice(i18next.t("service.notice_no_images_to_upload"));
+      }
+      return 0;
+    }
+
+    const uploadedPermalinks = new Map<string, string>();
+    const replacements: { start: number; end: number; value: string }[] = [];
+    let failedCount = 0;
+
+    for (const imageReference of imageReferences) {
+      try {
+        let permalink = uploadedPermalinks.get(imageReference.file.path);
+
+        if (!permalink) {
+          permalink = await this.uploadImage(imageReference.file);
+          uploadedPermalinks.set(imageReference.file.path, permalink);
+        }
+
+        replacements.push({
+          start: imageReference.start,
+          end: imageReference.end,
+          value: imageReference.replacement(permalink),
+        });
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        failedCount++;
+      }
+    }
+
+    if (replacements.length > 0) {
+      const updatedMarkdown = replacements
+        .sort((a, b) => b.start - a.start)
+        .reduce((markdown, replacement) => {
+          return markdown.slice(0, replacement.start) + replacement.value + markdown.slice(replacement.end);
+        }, md);
+
+      if (updatedMarkdown !== md) {
+        await this.app.vault.modify(activeEditor.file, updatedMarkdown);
+      }
+    }
+
+    if (!options.silent) {
+      if (failedCount > 0) {
+        new Notice(
+          i18next.t("service.notice_upload_images_partial", { count: replacements.length, failed: failedCount }),
+        );
+      } else {
+        new Notice(i18next.t("service.notice_upload_images_success", { count: replacements.length }));
+      }
+    }
+
+    return replacements.length;
+  }
+
+  public async uploadImage(file: TFile): Promise<string> {
+    const fileData = await this.app.vault.readBinary(file);
+    const body = this.createMultipartBody(file.name, file.extension, fileData);
+    const attachment = (await requestUrl({
+      url: `${this.site.url}/apis/uc.api.storage.halo.run/v1alpha1/attachments/-/upload`,
+      method: "POST",
+      contentType: body.contentType,
+      headers: this.authHeaders,
+      body: body.data,
+    }).json) as Attachment;
+
+    const permalink = attachment.status?.permalink;
+
+    if (!permalink) {
+      throw new Error("Halo attachment response has no permalink");
+    }
+
+    if (permalink.startsWith("http://") || permalink.startsWith("https://")) {
+      return permalink;
+    }
+
+    return `${this.site.url}${permalink}`;
+  }
+
   public async getCategoryNames(displayNames: string[]): Promise<string[]> {
     const allCategories = await this.getCategories();
 
@@ -435,6 +559,179 @@ class HaloService {
         return found ? found.spec.displayName : undefined;
       })
       .filter(Boolean) as string[];
+  }
+
+  private collectLocalImageReferences(markdown: string, sourceFile: TFile): LocalImageReference[] {
+    const references: LocalImageReference[] = [];
+    const markdownImageRegex = /!\[[^\]\n]*\]\(([^)\n]+)\)/g;
+    const wikiEmbedRegex = /!\[\[([^\]\n]+)\]\]/g;
+
+    let match = markdownImageRegex.exec(markdown);
+
+    while (match !== null) {
+      const target = this.parseMarkdownImageTarget(match[1]);
+
+      if (!target || this.isRemotePath(target.path)) {
+        match = markdownImageRegex.exec(markdown);
+        continue;
+      }
+
+      const file = this.resolveImageFile(target.path, sourceFile);
+
+      if (!file) {
+        match = markdownImageRegex.exec(markdown);
+        continue;
+      }
+
+      const targetOffset = match[0].indexOf(match[1]) + target.start;
+
+      references.push({
+        file,
+        start: match.index + targetOffset,
+        end: match.index + targetOffset + target.rawPath.length,
+        replacement: (permalink) => permalink,
+      });
+
+      match = markdownImageRegex.exec(markdown);
+    }
+
+    match = wikiEmbedRegex.exec(markdown);
+
+    while (match !== null) {
+      const linkText = match[1].trim();
+      const linkPath = this.decodeMarkdownPath(getLinkpath(linkText));
+
+      if (this.isRemotePath(linkPath)) {
+        match = wikiEmbedRegex.exec(markdown);
+        continue;
+      }
+
+      const file = this.resolveImageFile(linkPath, sourceFile);
+
+      if (!file) {
+        match = wikiEmbedRegex.exec(markdown);
+        continue;
+      }
+
+      references.push({
+        file,
+        start: match.index,
+        end: match.index + match[0].length,
+        replacement: (permalink) => `![${this.getWikiImageAlt(linkText)}](${permalink})`,
+      });
+
+      match = wikiEmbedRegex.exec(markdown);
+    }
+
+    return references;
+  }
+
+  private parseMarkdownImageTarget(rawTarget: string): MarkdownImageTarget | undefined {
+    const trimmedStart = rawTarget.search(/\S/);
+
+    if (trimmedStart === -1) {
+      return undefined;
+    }
+
+    const trimmed = rawTarget.trim();
+
+    if (trimmed.startsWith("<")) {
+      const end = trimmed.indexOf(">");
+
+      if (end <= 1) {
+        return undefined;
+      }
+
+      const rawPath = trimmed.slice(1, end);
+      return {
+        rawPath,
+        path: this.decodeMarkdownPath(rawPath),
+        start: trimmedStart + 1,
+      };
+    }
+
+    return {
+      rawPath: trimmed,
+      path: this.decodeMarkdownPath(trimmed),
+      start: trimmedStart,
+    };
+  }
+
+  private decodeMarkdownPath(path: string): string {
+    try {
+      return decodeURIComponent(path);
+    } catch {
+      return path;
+    }
+  }
+
+  private resolveImageFile(path: string, sourceFile: TFile): TFile | undefined {
+    const linkPath = getLinkpath(path);
+    const linkDestination = this.app.metadataCache.getFirstLinkpathDest(linkPath, sourceFile.path);
+
+    if (linkDestination && this.isImageFile(linkDestination)) {
+      return linkDestination;
+    }
+
+    const normalizedPath = normalizePath(linkPath.replace(/^\/+/, ""));
+    const absoluteFile = this.app.vault.getAbstractFileByPath(normalizedPath);
+
+    if (absoluteFile instanceof TFile && this.isImageFile(absoluteFile)) {
+      return absoluteFile;
+    }
+
+    const sourceDirectory = sourceFile.parent?.path || "";
+    const relativePath = normalizePath(`${sourceDirectory}/${linkPath}`);
+    const relativeFile = this.app.vault.getAbstractFileByPath(relativePath);
+
+    if (relativeFile instanceof TFile && this.isImageFile(relativeFile)) {
+      return relativeFile;
+    }
+
+    return undefined;
+  }
+
+  private isImageFile(file: TFile): boolean {
+    return IMAGE_EXTENSIONS.has(file.extension.toLowerCase());
+  }
+
+  private isRemotePath(path: string): boolean {
+    return /^[a-z][a-z0-9+.-]*:/i.test(path) || path.startsWith("//") || path.startsWith("#");
+  }
+
+  private getWikiImageAlt(linkText: string): string {
+    const alias = linkText.split("|").slice(1).join("|").trim();
+
+    if (!alias || /^\d+(x\d+)?$/.test(alias)) {
+      return "";
+    }
+
+    return alias.replace(/]/g, "\\]");
+  }
+
+  private createMultipartBody(
+    filename: string,
+    extension: string,
+    fileData: ArrayBuffer,
+  ): { contentType: string; data: ArrayBuffer } {
+    const boundary = `----obsidian-halo-${randomUUID()}`;
+    const mimeType = IMAGE_MIME_TYPES[extension.toLowerCase()] || "application/octet-stream";
+    const safeFilename = filename.replace(/["\r\n]/g, "_");
+    const encoder = new TextEncoder();
+    const header = encoder.encode(
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${safeFilename}"\r\nContent-Type: ${mimeType}\r\n\r\n`,
+    );
+    const footer = encoder.encode(`\r\n--${boundary}--\r\n`);
+    const body = new Uint8Array(header.length + fileData.byteLength + footer.length);
+
+    body.set(header, 0);
+    body.set(new Uint8Array(fileData), header.length);
+    body.set(footer, header.length + fileData.byteLength);
+
+    return {
+      contentType: `multipart/form-data; boundary=${boundary}`,
+      data: body.buffer,
+    };
   }
 }
 

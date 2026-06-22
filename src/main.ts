@@ -48,7 +48,16 @@ export default class HaloPlugin extends Plugin {
         }
 
         const service = new HaloService(this.app, this.settings, site);
+        await service.uploadImages({ silent: true });
         await service.publishPost();
+      },
+    });
+
+    this.addCommand({
+      id: "upload-images",
+      name: i18next.t("command.upload_images.name"),
+      callback: async () => {
+        await this.uploadImagesCommand();
       },
     });
 
@@ -137,12 +146,62 @@ export default class HaloPlugin extends Plugin {
       }
 
       const service = new HaloService(this.app, this.settings, site);
+      await service.uploadImages({ silent: true });
       await service.publishPost();
+      return;
+    }
+
+    if (this.settings.sites.length === 0) {
+      new Notice(i18next.t("command.publish.error_no_sites"));
       return;
     }
 
     const site = await openSiteSelectionModal(this);
     const service = new HaloService(this.app, this.settings, site);
+    await service.uploadImages({ silent: true });
     await service.publishPost();
+  }
+
+  private async uploadImagesCommand() {
+    const site = await this.getSiteForActiveFile();
+
+    if (!site) {
+      return;
+    }
+
+    const service = new HaloService(this.app, this.settings, site);
+    await service.uploadImages();
+  }
+
+  private async getSiteForActiveFile(): Promise<HaloSite | undefined> {
+    const { activeEditor } = this.app.workspace;
+
+    if (!activeEditor || !activeEditor.file) {
+      return undefined;
+    }
+
+    const matterData = this.app.metadataCache.getFileCache(activeEditor.file)?.frontmatter;
+
+    if (matterData?.halo?.site) {
+      const site = this.settings.sites.find((site) => site.url === matterData.halo.site);
+
+      if (!site) {
+        new Notice(i18next.t("command.upload_images.error_no_matched_site"));
+        return undefined;
+      }
+
+      return site;
+    }
+
+    if (this.settings.sites.length === 0) {
+      new Notice(i18next.t("command.upload_images.error_no_sites"));
+      return undefined;
+    }
+
+    if (this.settings.sites.length === 1) {
+      return this.settings.sites[0];
+    }
+
+    return openSiteSelectionModal(this);
   }
 }

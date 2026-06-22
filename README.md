@@ -30,6 +30,7 @@ This plugin allows you to publish your Obsidian documents to [Halo](https://gith
 6. All available commands:
    - **Halo: Publish to Halo**: publish the current note to Halo.
    - **Halo: Publish to Halo (use default settings)**: publish the current note to the default site.
+   - **Halo: Upload images to Halo**: upload local images in the current note to Halo and replace them with remote URLs.
    - **Halo: Pull posts from Halo**: pull posts from Halo to Obsidian.
    - **Halo: Update content from Halo**: update the content of the current note from Halo.
 
@@ -67,5 +68,5 @@ This plugin allows you to publish your Obsidian documents to [Halo](https://gith
 ## TODO
 
 - [x] i18n
-- [ ] Upload images
+- [x] Upload images
 - [x] Publish this plugin to Obsidian community
