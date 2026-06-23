@@ -4,7 +4,7 @@ import { type App, Notice, TFile, getLinkpath, normalizePath, requestUrl } from 
 import { randomUUID } from "src/utils/id";
 import markdownIt from "src/utils/markdown";
 import { slugify } from "transliteration";
-import type { HaloSetting, HaloSite } from "../settings";
+import { type HaloSetting, type HaloSite, isSameSiteUrl, normalizeSite } from "../settings";
 
 interface LocalImageReference {
   file: TFile;
@@ -45,10 +45,10 @@ class HaloService {
   constructor(app: App, settings: HaloSetting, site: HaloSite) {
     this.app = app;
     this.settings = settings;
-    this.site = site;
+    this.site = normalizeSite(site);
 
     this.authHeaders = {
-      Authorization: `Bearer ${site.token}`,
+      Authorization: `Bearer ${this.site.token}`,
     };
 
     this.headers = {
@@ -142,7 +142,7 @@ class HaloService {
     const raw = frontmatterPosition ? md.slice(frontmatterPosition?.end.offset) : md;
 
     // check site url
-    if (matterData?.halo?.site && matterData.halo.site !== this.site.url) {
+    if (matterData?.halo?.site && !isSameSiteUrl(matterData.halo.site, this.site.url)) {
       new Notice(i18next.t("service.error_site_not_match"));
       return;
     }

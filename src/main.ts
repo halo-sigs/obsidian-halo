@@ -4,7 +4,14 @@ import { resources } from "./i18n";
 import { addHaloIcon } from "./icons";
 import { openPostSelectionModal } from "./post-selection-model";
 import HaloService from "./service";
-import { DEFAULT_SETTINGS, type HaloSetting, HaloSettingTab, type HaloSite } from "./settings";
+import {
+  DEFAULT_SETTINGS,
+  type HaloSetting,
+  HaloSettingTab,
+  type HaloSite,
+  isSameSiteUrl,
+  normalizeSite,
+} from "./settings";
 import { openSiteSelectionModal } from "./site-selection-modal";
 
 export default class HaloPlugin extends Plugin {
@@ -78,7 +85,7 @@ export default class HaloPlugin extends Plugin {
           return;
         }
 
-        const site = this.settings.sites.find((site) => site.url === matterData.halo?.site);
+        const site = this.getSiteByUrl(matterData.halo.site);
 
         if (!site) {
           new Notice(i18next.t("command.update_post.error_no_matched_site"));
@@ -121,10 +128,15 @@ export default class HaloPlugin extends Plugin {
   onunload() {}
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    this.settings = {
+      ...settings,
+      sites: settings.sites.map(normalizeSite),
+    };
   }
 
   async saveSettings() {
+    this.settings.sites = this.settings.sites.map(normalizeSite);
     await this.saveData(this.settings);
   }
 
@@ -138,7 +150,7 @@ export default class HaloPlugin extends Plugin {
     const matterData = this.app.metadataCache.getFileCache(activeEditor.file)?.frontmatter;
 
     if (matterData?.halo?.site) {
-      const site = this.settings.sites.find((site) => site.url === matterData.halo.site);
+      const site = this.getSiteByUrl(matterData.halo.site);
 
       if (!site) {
         new Notice(i18next.t("command.publish.error_no_matched_site"));
@@ -183,7 +195,7 @@ export default class HaloPlugin extends Plugin {
     const matterData = this.app.metadataCache.getFileCache(activeEditor.file)?.frontmatter;
 
     if (matterData?.halo?.site) {
-      const site = this.settings.sites.find((site) => site.url === matterData.halo.site);
+      const site = this.getSiteByUrl(matterData.halo.site);
 
       if (!site) {
         new Notice(i18next.t("command.upload_images.error_no_matched_site"));
@@ -203,5 +215,9 @@ export default class HaloPlugin extends Plugin {
     }
 
     return openSiteSelectionModal(this);
+  }
+
+  private getSiteByUrl(url: string): HaloSite | undefined {
+    return this.settings.sites.find((site) => isSameSiteUrl(site.url, url));
   }
 }

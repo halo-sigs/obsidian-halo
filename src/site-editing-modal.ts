@@ -1,7 +1,7 @@
 import i18next from "i18next";
 import { Modal, Notice, Setting, requestUrl } from "obsidian";
 import type HaloPlugin from "./main";
-import type { HaloSite } from "./settings";
+import { type HaloSite, normalizeSite } from "./settings";
 
 export function openSiteEditingModal(
   plugin: HaloPlugin,
@@ -35,7 +35,7 @@ export class SiteEditingModal extends Modal {
   ) {
     super(plugin.app);
 
-    this.currentSite = Object.assign({}, site);
+    this.currentSite = normalizeSite(site);
   }
   onOpen(): void {
     const { contentEl } = this;
@@ -84,12 +84,14 @@ export class SiteEditingModal extends Modal {
       new Setting(contentEl)
         .addButton((button) => {
           button.setButtonText(i18next.t("site_editing_modal.settings.validate.button")).onClick(() => {
+            const site = normalizeSite(this.currentSite);
+
             button.setDisabled(true);
             button.setButtonText(i18next.t("site_editing_modal.settings.validate.button_validating"));
             requestUrl({
-              url: `${this.currentSite.url}/apis/api.console.halo.run/v1alpha1/users/-/permissions`,
+              url: `${site.url}/apis/api.console.halo.run/v1alpha1/users/-/permissions`,
               headers: {
-                Authorization: `Bearer ${this.currentSite.token}`,
+                Authorization: `Bearer ${site.token}`,
               },
             })
               .then((response) => {
@@ -113,7 +115,7 @@ export class SiteEditingModal extends Modal {
             .setButtonText(i18next.t("site_editing_modal.settings.save.button"))
             .setCta()
             .onClick(() => {
-              this.onSubmit(this.currentSite, this.index);
+              this.onSubmit(normalizeSite(this.currentSite), this.index);
               this.close();
             }),
         );

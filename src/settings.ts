@@ -20,6 +20,21 @@ export const DEFAULT_SETTINGS: HaloSetting = {
   publishByDefault: false,
 };
 
+export function normalizeSiteUrl(url: string): string {
+  return url.trim().replace(/\/+$/, "");
+}
+
+export function normalizeSite(site: HaloSite): HaloSite {
+  return {
+    ...site,
+    url: normalizeSiteUrl(site.url),
+  };
+}
+
+export function isSameSiteUrl(left: string, right: string): boolean {
+  return normalizeSiteUrl(left) === normalizeSiteUrl(right);
+}
+
 export class HaloSettingTab extends PluginSettingTab {
   constructor(private readonly plugin: HaloPlugin) {
     super(plugin.app, plugin);
