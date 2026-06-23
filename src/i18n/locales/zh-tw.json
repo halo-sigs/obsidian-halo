@@ -40,6 +40,10 @@
     "publishByDefault": {
       "name": "默认發布文章",
       "description": "勾選之後，首次建立文章將直接發布"
+    },
+    "replaceImageLinks": {
+      "name": "替換圖片連結",
+      "description": "上傳成功後，將 Markdown 中的本機圖片連結替換為 Halo 位址。關閉後，發布內容仍會使用上傳後的位址。"
     }
   },
   "post_selection_modal": {
@@ -94,9 +98,10 @@
     "notice_publish_success": "發佈成功",
     "error_not_published": "此文件還未發佈到 Halo",
     "error_post_not_found": "文章不存在",
+    "error_upload_images_failed_publish_aborted": "有 {{failed}} 張圖片上傳失敗，已取消發布",
     "notice_no_images_to_upload": "沒有需要上傳的本地圖片",
-    "notice_upload_images_success": "已上傳 {{count}} 張圖片",
-    "notice_upload_images_partial": "已上傳 {{count}} 張圖片，{{failed}} 張失敗"
+    "notice_upload_images_success": "已處理 {{count}} 張圖片",
+    "notice_upload_images_partial": "已處理 {{count}} 張圖片，{{failed}} 張失敗"
   },
   "common": {
     "error_connection_failed": "連接失敗",

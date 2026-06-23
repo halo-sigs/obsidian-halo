@@ -54,9 +54,18 @@ export default class HaloPlugin extends Plugin {
           return;
         }
 
+        if (!this.canPublishToSite(site)) {
+          return;
+        }
+
         const service = new HaloService(this.app, this.settings, site);
-        await service.uploadImages({ silent: true });
-        await service.publishPost();
+        const uploadResult = await this.uploadImagesForPublish(service);
+
+        if (!uploadResult.success) {
+          return;
+        }
+
+        await service.publishPost({ markdown: uploadResult.markdown });
       },
     });
 
@@ -132,6 +141,7 @@ export default class HaloPlugin extends Plugin {
     this.settings = {
       ...settings,
       sites: settings.sites.map(normalizeSite),
+      imageUploadCache: { ...(settings.imageUploadCache ?? {}) },
     };
   }
 
@@ -158,8 +168,13 @@ export default class HaloPlugin extends Plugin {
       }
 
       const service = new HaloService(this.app, this.settings, site);
-      await service.uploadImages({ silent: true });
-      await service.publishPost();
+      const uploadResult = await this.uploadImagesForPublish(service);
+
+      if (!uploadResult.success) {
+        return;
+      }
+
+      await service.publishPost({ markdown: uploadResult.markdown });
       return;
     }
 
@@ -170,8 +185,13 @@ export default class HaloPlugin extends Plugin {
 
     const site = await openSiteSelectionModal(this);
     const service = new HaloService(this.app, this.settings, site);
-    await service.uploadImages({ silent: true });
-    await service.publishPost();
+    const uploadResult = await this.uploadImagesForPublish(service);
+
+    if (!uploadResult.success) {
+      return;
+    }
+
+    await service.publishPost({ markdown: uploadResult.markdown });
   }
 
   private async uploadImagesCommand() {
@@ -183,6 +203,7 @@ export default class HaloPlugin extends Plugin {
 
     const service = new HaloService(this.app, this.settings, site);
     await service.uploadImages();
+    await this.saveSettings();
   }
 
   private async getSiteForActiveFile(): Promise<HaloSite | undefined> {
@@ -215,6 +236,38 @@ export default class HaloPlugin extends Plugin {
     }
 
     return openSiteSelectionModal(this);
+  }
+
+  private async uploadImagesForPublish(service: HaloService): Promise<{ success: boolean; markdown?: string }> {
+    const uploadResult = await service.uploadImages({ silent: true });
+    await this.saveSettings();
+
+    if (uploadResult.failedCount > 0) {
+      new Notice(i18next.t("service.error_upload_images_failed_publish_aborted", { failed: uploadResult.failedCount }));
+      return { success: false };
+    }
+
+    return {
+      success: true,
+      markdown: uploadResult.markdown,
+    };
+  }
+
+  private canPublishToSite(site: HaloSite): boolean {
+    const { activeEditor } = this.app.workspace;
+
+    if (!activeEditor || !activeEditor.file) {
+      return false;
+    }
+
+    const matterData = this.app.metadataCache.getFileCache(activeEditor.file)?.frontmatter;
+
+    if (matterData?.halo?.site && !isSameSiteUrl(matterData.halo.site, site.url)) {
+      new Notice(i18next.t("service.error_site_not_match"));
+      return false;
+    }
+
+    return true;
   }
 
   private getSiteByUrl(url: string): HaloSite | undefined {

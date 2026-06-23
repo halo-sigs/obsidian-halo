@@ -4,7 +4,7 @@ import { type App, Notice, TFile, getLinkpath, normalizePath, requestUrl } from 
 import { randomUUID } from "src/utils/id";
 import markdownIt from "src/utils/markdown";
 import { slugify } from "transliteration";
-import { type HaloSetting, type HaloSite, isSameSiteUrl, normalizeSite } from "../settings";
+import { type HaloSetting, type HaloSite, type ImageUploadCacheEntry, isSameSiteUrl, normalizeSite } from "../settings";
 
 interface LocalImageReference {
   file: TFile;
@@ -17,6 +17,15 @@ interface MarkdownImageTarget {
   path: string;
   rawPath: string;
   start: number;
+}
+
+interface UploadImagesResult {
+  processedCount: number;
+  uploadedCount: number;
+  reusedCount: number;
+  failedCount: number;
+  markdown?: string;
+  replaced: boolean;
 }
 
 const IMAGE_EXTENSIONS = new Set(["avif", "bmp", "gif", "ico", "jpeg", "jpg", "png", "svg", "tif", "tiff", "webp"]);
@@ -46,6 +55,10 @@ class HaloService {
     this.app = app;
     this.settings = settings;
     this.site = normalizeSite(site);
+
+    if (!this.settings.imageUploadCache) {
+      this.settings.imageUploadCache = {};
+    }
 
     this.authHeaders = {
       Authorization: `Bearer ${this.site.token}`,
@@ -89,7 +102,7 @@ class HaloService {
     }
   }
 
-  public async publishPost(): Promise<void> {
+  public async publishPost(options: { markdown?: string } = {}): Promise<void> {
     const { activeEditor } = this.app.workspace;
 
     if (!activeEditor || !activeEditor.file) {
@@ -135,7 +148,7 @@ class HaloService {
       content: "",
     };
 
-    const md = await this.app.vault.read(activeEditor.file);
+    const md = options.markdown ?? (await this.app.vault.read(activeEditor.file));
     const matterData = this.app.metadataCache.getFileCache(activeEditor.file)?.frontmatter;
     const frontmatterPosition = this.app.metadataCache.getFileCache(activeEditor.file)?.frontmatterPosition;
 
@@ -372,25 +385,43 @@ class HaloService {
     });
   }
 
-  public async uploadImages(options: { silent?: boolean } = {}): Promise<number> {
+  public async uploadImages(
+    options: { silent?: boolean; replaceMarkdown?: boolean } = {},
+  ): Promise<UploadImagesResult> {
     const { activeEditor } = this.app.workspace;
 
     if (!activeEditor || !activeEditor.file) {
-      return 0;
+      return {
+        processedCount: 0,
+        uploadedCount: 0,
+        reusedCount: 0,
+        failedCount: 0,
+        replaced: false,
+      };
     }
 
     const md = await this.app.vault.read(activeEditor.file);
     const imageReferences = this.collectLocalImageReferences(md, activeEditor.file);
+    const replaceMarkdown = options.replaceMarkdown ?? this.settings.replaceImageLinks;
 
     if (imageReferences.length === 0) {
       if (!options.silent) {
         new Notice(i18next.t("service.notice_no_images_to_upload"));
       }
-      return 0;
+      return {
+        processedCount: 0,
+        uploadedCount: 0,
+        reusedCount: 0,
+        failedCount: 0,
+        markdown: md,
+        replaced: false,
+      };
     }
 
     const uploadedPermalinks = new Map<string, string>();
     const replacements: { start: number; end: number; value: string }[] = [];
+    let uploadedCount = 0;
+    let reusedCount = 0;
     let failedCount = 0;
 
     for (const imageReference of imageReferences) {
@@ -398,7 +429,16 @@ class HaloService {
         let permalink = uploadedPermalinks.get(imageReference.file.path);
 
         if (!permalink) {
-          permalink = await this.uploadImage(imageReference.file);
+          permalink = this.getCachedImagePermalink(imageReference.file);
+
+          if (permalink) {
+            reusedCount++;
+          } else {
+            permalink = await this.uploadImage(imageReference.file);
+            this.cacheImagePermalink(imageReference.file, permalink);
+            uploadedCount++;
+          }
+
           uploadedPermalinks.set(imageReference.file.path, permalink);
         }
 
@@ -413,16 +453,19 @@ class HaloService {
       }
     }
 
-    if (replacements.length > 0) {
-      const updatedMarkdown = replacements
-        .sort((a, b) => b.start - a.start)
-        .reduce((markdown, replacement) => {
-          return markdown.slice(0, replacement.start) + replacement.value + markdown.slice(replacement.end);
-        }, md);
+    const updatedMarkdown =
+      replacements.length > 0
+        ? replacements
+            .sort((a, b) => b.start - a.start)
+            .reduce((markdown, replacement) => {
+              return markdown.slice(0, replacement.start) + replacement.value + markdown.slice(replacement.end);
+            }, md)
+        : md;
 
-      if (updatedMarkdown !== md) {
-        await this.app.vault.modify(activeEditor.file, updatedMarkdown);
-      }
+    const shouldReplaceMarkdown = replaceMarkdown && failedCount === 0 && updatedMarkdown !== md;
+
+    if (shouldReplaceMarkdown) {
+      await this.app.vault.modify(activeEditor.file, updatedMarkdown);
     }
 
     if (!options.silent) {
@@ -435,7 +478,14 @@ class HaloService {
       }
     }
 
-    return replacements.length;
+    return {
+      processedCount: replacements.length,
+      uploadedCount,
+      reusedCount,
+      failedCount,
+      markdown: updatedMarkdown,
+      replaced: shouldReplaceMarkdown,
+    };
   }
 
   public async uploadImage(file: TFile): Promise<string> {
@@ -460,6 +510,32 @@ class HaloService {
     }
 
     return `${this.site.url}${permalink}`;
+  }
+
+  private getCachedImagePermalink(file: TFile): string | undefined {
+    const cacheEntry = this.settings.imageUploadCache[this.site.url]?.[file.path];
+
+    if (!cacheEntry || !this.isSameImageFile(file, cacheEntry)) {
+      return undefined;
+    }
+
+    return cacheEntry.permalink;
+  }
+
+  private cacheImagePermalink(file: TFile, permalink: string): void {
+    const siteCache = this.settings.imageUploadCache[this.site.url] ?? {};
+    siteCache[file.path] = {
+      filePath: file.path,
+      size: file.stat.size,
+      mtime: file.stat.mtime,
+      permalink,
+      updatedAt: Date.now(),
+    };
+    this.settings.imageUploadCache[this.site.url] = siteCache;
+  }
+
+  private isSameImageFile(file: TFile, cacheEntry: ImageUploadCacheEntry): boolean {
+    return cacheEntry.size === file.stat.size && cacheEntry.mtime === file.stat.mtime;
   }
 
   public async getCategoryNames(displayNames: string[]): Promise<string[]> {

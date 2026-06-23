@@ -10,14 +10,26 @@ export interface HaloSite {
   default: boolean;
 }
 
+export interface ImageUploadCacheEntry {
+  filePath: string;
+  size: number;
+  mtime: number;
+  permalink: string;
+  updatedAt: number;
+}
+
 export interface HaloSetting {
   sites: HaloSite[];
   publishByDefault: boolean;
+  replaceImageLinks: boolean;
+  imageUploadCache: Record<string, Record<string, ImageUploadCacheEntry>>;
 }
 
 export const DEFAULT_SETTINGS: HaloSetting = {
   sites: [],
   publishByDefault: false,
+  replaceImageLinks: true,
+  imageUploadCache: {},
 };
 
 export function normalizeSiteUrl(url: string): string {
@@ -60,6 +72,16 @@ export class HaloSettingTab extends PluginSettingTab {
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.settings.publishByDefault).onChange((value) => {
           this.plugin.settings.publishByDefault = value;
+          this.plugin.saveSettings();
+        });
+      });
+
+    new Setting(containerEl)
+      .setName(i18next.t("settings.replaceImageLinks.name"))
+      .setDesc(i18next.t("settings.replaceImageLinks.description"))
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.settings.replaceImageLinks).onChange((value) => {
+          this.plugin.settings.replaceImageLinks = value;
           this.plugin.saveSettings();
         });
       });

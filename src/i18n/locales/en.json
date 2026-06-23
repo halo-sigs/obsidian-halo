@@ -40,6 +40,10 @@
     "publishByDefault": {
       "name": "Publish post by default",
       "description": "After checking, the first post created will be published directly"
+    },
+    "replaceImageLinks": {
+      "name": "Replace image links",
+      "description": "Replace local Markdown image links with Halo URLs after upload. When disabled, published content still uses the uploaded URLs."
     }
   },
   "post_selection_modal": {
@@ -94,9 +98,10 @@
     "notice_publish_success": "Published successfully",
     "error_not_published": "This document is not published to Halo yet",
     "error_post_not_found": "Post does not exist",
+    "error_upload_images_failed_publish_aborted": "{{failed}} image(s) failed to upload. Publishing was aborted.",
     "notice_no_images_to_upload": "No local images to upload",
-    "notice_upload_images_success": "Uploaded {{count}} image(s)",
-    "notice_upload_images_partial": "Uploaded {{count}} image(s), {{failed}} failed"
+    "notice_upload_images_success": "Processed {{count}} image(s)",
+    "notice_upload_images_partial": "Processed {{count}} image(s), {{failed}} failed"
   },
   "common": {
     "error_connection_failed": "Connection failed",
