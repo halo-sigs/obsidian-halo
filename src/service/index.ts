@@ -28,7 +28,23 @@ interface UploadImagesResult {
   replaced: boolean;
 }
 
+interface HaloPostFrontmatter {
+  title?: string;
+  slug?: string;
+  excerpt?: string;
+  cover?: string;
+  categories?: string[];
+  tags?: string[];
+  halo?: {
+    site?: string;
+    name?: string;
+    publish?: boolean;
+  };
+}
+
 const IMAGE_EXTENSIONS = new Set(["avif", "bmp", "gif", "ico", "jpeg", "jpg", "png", "svg", "tif", "tiff", "webp"]);
+const PUBLISH_RETRY_COUNT = 3;
+const PUBLISH_RETRY_DELAY_MS = 500;
 
 const IMAGE_MIME_TYPES: Record<string, string> = {
   avif: "image/avif",
@@ -72,15 +88,8 @@ class HaloService {
 
   public async getPost(name: string): Promise<{ post: Post; content: Content } | undefined> {
     try {
-      const post = (await requestUrl({
-        url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${name}`,
-        headers: this.headers,
-      }).json) as Post;
-
-      const snapshot = (await requestUrl({
-        url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${name}/draft?patched=true`,
-        headers: this.headers,
-      }).json) as Snapshot;
+      const post = await this.getPostResource(name);
+      const snapshot = await this.getPostDraft(name);
 
       const { "content.halo.run/patched-content": patchedContent, "content.halo.run/patched-raw": patchedRaw } =
         snapshot.metadata.annotations || {};
@@ -102,12 +111,28 @@ class HaloService {
     }
   }
 
+  private async getPostResource(name: string): Promise<Post> {
+    return (await requestUrl({
+      url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${name}`,
+      headers: this.headers,
+    }).json) as Post;
+  }
+
+  private async getPostDraft(name: string): Promise<Snapshot> {
+    return (await requestUrl({
+      url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${name}/draft?patched=true`,
+      headers: this.headers,
+    }).json) as Snapshot;
+  }
+
   public async publishPost(options: { markdown?: string } = {}): Promise<void> {
     const { activeEditor } = this.app.workspace;
 
     if (!activeEditor || !activeEditor.file) {
       return;
     }
+
+    const activeFile = activeEditor.file;
 
     let params: Post = {
       apiVersion: "content.halo.run/v1alpha1",
@@ -142,15 +167,9 @@ class HaloService {
       },
     };
 
-    let content: Content = {
-      rawType: "markdown",
-      raw: "",
-      content: "",
-    };
-
-    const md = options.markdown ?? (await this.app.vault.read(activeEditor.file));
-    const matterData = this.app.metadataCache.getFileCache(activeEditor.file)?.frontmatter;
-    const frontmatterPosition = this.app.metadataCache.getFileCache(activeEditor.file)?.frontmatterPosition;
+    const md = options.markdown ?? (await this.app.vault.read(activeFile));
+    const matterData = this.app.metadataCache.getFileCache(activeFile)?.frontmatter as HaloPostFrontmatter | undefined;
+    const frontmatterPosition = this.app.metadataCache.getFileCache(activeFile)?.frontmatterPosition;
 
     const raw = frontmatterPosition ? md.slice(frontmatterPosition?.end.offset) : md;
 
@@ -160,109 +179,99 @@ class HaloService {
       return;
     }
 
-    if (matterData?.halo?.name) {
-      const post = await this.getPost(matterData.halo.name);
-
-      if (post) {
-        params = post.post;
-        content = post.content;
-      }
-    }
-
-    content.raw = raw;
-    content.content = markdownIt.render(raw);
-
-    // restore metadata
-    if (matterData?.title) {
-      params.spec.title = matterData.title;
-    }
-
-    if (matterData?.slug) {
-      params.spec.slug = matterData.slug;
-    }
-
-    if (matterData?.excerpt) {
-      params.spec.excerpt.raw = matterData.excerpt;
-      params.spec.excerpt.autoGenerate = false;
-    }
-
-    if (matterData?.cover) {
-      params.spec.cover = matterData.cover;
-    }
-
+    let categoryNames: string[] | undefined;
     if (matterData?.categories) {
-      const categoryNames = await this.getCategoryNames(matterData.categories);
-      params.spec.categories = categoryNames;
+      categoryNames = await this.getCategoryNames(matterData.categories);
     }
 
+    let tagNames: string[] | undefined;
     if (matterData?.tags) {
-      const tagNames = await this.getTagNames(matterData.tags);
-      params.spec.tags = tagNames;
+      tagNames = await this.getTagNames(matterData.tags);
     }
+
+    let remotePostName = matterData?.halo?.name;
 
     try {
-      if (params.metadata.name) {
-        const { name } = params.metadata;
+      params = await this.withPublishRetry(async () => {
+        if (remotePostName) {
+          const latestPost = await this.getPostResource(remotePostName);
+          params = this.applyPostFrontmatter(latestPost, {
+            activeFile,
+            categoryNames,
+            matterData,
+            tagNames,
+            useActiveFileDefaults: false,
+          });
 
-        await requestUrl({
-          url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${name}`,
-          method: "PUT",
-          contentType: "application/json",
-          headers: this.headers,
-          body: JSON.stringify(params),
-        });
+          await requestUrl({
+            url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${remotePostName}`,
+            method: "PUT",
+            contentType: "application/json",
+            headers: this.headers,
+            body: JSON.stringify(params),
+          });
 
-        const snapshot = (await requestUrl({
-          url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${name}/draft?patched=true`,
-          headers: this.headers,
-        }).json) as Snapshot;
+          const snapshot = await this.getPostDraft(remotePostName);
+          const content = this.createPostContent(raw, snapshot.spec?.rawType);
 
-        snapshot.metadata.annotations = {
-          ...snapshot.metadata.annotations,
-          "content.halo.run/content-json": JSON.stringify(content),
-        };
+          snapshot.metadata.annotations = {
+            ...snapshot.metadata.annotations,
+            "content.halo.run/content-json": JSON.stringify(content),
+          };
 
-        await requestUrl({
-          url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${name}/draft`,
-          method: "PUT",
-          contentType: "application/json",
-          headers: this.headers,
-          body: JSON.stringify(snapshot),
-        });
-      } else {
-        params.metadata.name = randomUUID();
-        params.spec.title = matterData?.title || activeEditor.file.basename;
-        params.spec.slug = matterData?.slug || slugify(params.spec.title, { trim: true });
-
-        params.metadata.annotations = {
-          ...params.metadata.annotations,
-          "content.halo.run/content-json": JSON.stringify(content),
-        };
-
-        const post = await requestUrl({
-          url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts`,
-          method: "POST",
-          contentType: "application/json",
-          headers: this.headers,
-          body: JSON.stringify(params),
-        }).json;
-
-        params = post;
-      }
-
-      // Publish post
-      // biome-ignore lint: no
-      if (matterData?.halo?.hasOwnProperty("publish")) {
-        if (matterData?.halo?.publish) {
-          await this.changePostPublish(params.metadata.name, true);
+          await requestUrl({
+            url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts/${remotePostName}/draft`,
+            method: "PUT",
+            contentType: "application/json",
+            headers: this.headers,
+            body: JSON.stringify(snapshot),
+          });
         } else {
-          await this.changePostPublish(params.metadata.name, false);
+          if (!params.metadata.name) {
+            params.metadata.name = randomUUID();
+          }
+
+          params = this.applyPostFrontmatter(params, {
+            activeFile,
+            categoryNames,
+            matterData,
+            tagNames,
+            useActiveFileDefaults: true,
+          });
+
+          params.metadata.annotations = {
+            ...params.metadata.annotations,
+            "content.halo.run/content-json": JSON.stringify(this.createPostContent(raw)),
+          };
+
+          const post = await requestUrl({
+            url: `${this.site.url}/apis/uc.api.content.halo.run/v1alpha1/posts`,
+            method: "POST",
+            contentType: "application/json",
+            headers: this.headers,
+            body: JSON.stringify(params),
+          }).json;
+
+          params = post;
+          remotePostName = params.metadata.name;
         }
-      } else {
-        if (this.settings.publishByDefault) {
-          await this.changePostPublish(params.metadata.name, true);
+
+        // Publish post
+        // biome-ignore lint: no
+        if (matterData?.halo?.hasOwnProperty("publish")) {
+          if (matterData?.halo?.publish) {
+            await this.changePostPublish(params.metadata.name, true);
+          } else {
+            await this.changePostPublish(params.metadata.name, false);
+          }
+        } else {
+          if (this.settings.publishByDefault) {
+            await this.changePostPublish(params.metadata.name, true);
+          }
         }
-      }
+
+        return params;
+      });
 
       params = (await this.getPost(params.metadata.name))?.post || params;
     } catch (error) {
@@ -273,7 +282,7 @@ class HaloService {
     const postCategories = await this.getCategoryDisplayNames(params.spec.categories);
     const postTags = await this.getTagDisplayNames(params.spec.tags);
 
-    this.app.fileManager.processFrontMatter(activeEditor.file, (frontmatter) => {
+    this.app.fileManager.processFrontMatter(activeFile, (frontmatter) => {
       frontmatter.title = params.spec.title;
       frontmatter.slug = params.spec.slug;
       frontmatter.cover = params.spec.cover;
@@ -296,6 +305,96 @@ class HaloService {
       method: "PUT",
       contentType: "application/json",
       headers: this.headers,
+    });
+  }
+
+  private applyPostFrontmatter(
+    post: Post,
+    options: {
+      activeFile: TFile;
+      categoryNames?: string[];
+      matterData?: HaloPostFrontmatter;
+      tagNames?: string[];
+      useActiveFileDefaults: boolean;
+    },
+  ): Post {
+    const { activeFile, categoryNames, matterData, tagNames, useActiveFileDefaults } = options;
+    const nextPost: Post = {
+      ...post,
+      metadata: {
+        ...post.metadata,
+        annotations: {
+          ...post.metadata.annotations,
+        },
+      },
+      spec: {
+        ...post.spec,
+        categories: [...(post.spec.categories || [])],
+        excerpt: {
+          ...post.spec.excerpt,
+        },
+        htmlMetas: [...(post.spec.htmlMetas || [])],
+        tags: [...(post.spec.tags || [])],
+      },
+    };
+
+    if (matterData?.title) {
+      nextPost.spec.title = matterData.title;
+    } else if (useActiveFileDefaults) {
+      nextPost.spec.title = activeFile.basename;
+    }
+
+    if (matterData?.slug) {
+      nextPost.spec.slug = matterData.slug;
+    } else if (useActiveFileDefaults) {
+      nextPost.spec.slug = slugify(nextPost.spec.title, { trim: true });
+    }
+
+    if (matterData?.excerpt) {
+      nextPost.spec.excerpt.raw = matterData.excerpt;
+      nextPost.spec.excerpt.autoGenerate = false;
+    }
+
+    if (matterData?.cover) {
+      nextPost.spec.cover = matterData.cover;
+    }
+
+    if (categoryNames) {
+      nextPost.spec.categories = categoryNames;
+    }
+
+    if (tagNames) {
+      nextPost.spec.tags = tagNames;
+    }
+
+    return nextPost;
+  }
+
+  private createPostContent(raw: string, rawType = "markdown"): Content {
+    return {
+      content: markdownIt.render(raw),
+      raw,
+      rawType,
+    };
+  }
+
+  private async withPublishRetry<T>(operation: () => Promise<T>): Promise<T> {
+    for (let retryCount = 0; ; retryCount++) {
+      try {
+        return await operation();
+      } catch (error) {
+        if (retryCount >= PUBLISH_RETRY_COUNT) {
+          throw error;
+        }
+
+        await this.sleep(PUBLISH_RETRY_DELAY_MS * (retryCount + 1));
+      }
+    }
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
     });
   }
 

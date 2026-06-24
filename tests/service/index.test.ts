@@ -378,6 +378,114 @@ describe("HaloService.publishPost", () => {
     requestUrlMock().mockReset();
   });
 
+  test("retries draft update failures before showing publish failure", async () => {
+    const note = createFile("post.md");
+    const { app, fileManager, metadataCache } = createMockApp("published markdown", note, []);
+    const service = new HaloService(app, createSettings(), site);
+    const createRemotePost = (version: string) => ({
+      apiVersion: "content.halo.run/v1alpha1",
+      kind: "Post",
+      metadata: {
+        annotations: {},
+        name: "post-1",
+        version,
+      },
+      spec: {
+        categories: [],
+        cover: "",
+        excerpt: {
+          autoGenerate: true,
+          raw: "",
+        },
+        publish: false,
+        slug: "post-title",
+        tags: [],
+        title: "Post title",
+      },
+    });
+    const snapshot = {
+      metadata: {
+        annotations: {},
+      },
+      spec: {
+        rawType: "markdown",
+      },
+    };
+    let draftUpdateAttempts = 0;
+    let latestPostFetches = 0;
+    let postUpdateAttempts = 0;
+    const postUpdateVersions: string[] = [];
+
+    metadataCache.getFileCache.mockImplementation(() => ({
+      frontmatter: {
+        halo: {
+          name: "post-1",
+          site: site.url,
+        },
+        title: "Post title",
+      },
+    }));
+    requestUrlMock().mockImplementation((request: RequestUrlParam) => {
+      const url = typeof request === "string" ? request : request.url;
+      const method = typeof request === "string" ? "GET" : request.method || "GET";
+
+      if (url.endsWith("/posts/post-1/draft?patched=true")) {
+        return {
+          json: snapshot,
+        };
+      }
+
+      if (url.endsWith("/posts/post-1/draft") && method === "PUT") {
+        draftUpdateAttempts += 1;
+
+        if (draftUpdateAttempts === 1) {
+          throw new Error("The post draft is locked");
+        }
+
+        return {
+          json: snapshot,
+        };
+      }
+
+      if (url.endsWith("/posts/post-1") && method === "PUT") {
+        postUpdateAttempts += 1;
+        const body = JSON.parse(
+          typeof request === "string" || typeof request.body !== "string" ? "{}" : request.body,
+        ) as {
+          metadata?: { version?: string };
+        };
+        postUpdateVersions.push(body.metadata?.version || "");
+        return {
+          json: createRemotePost(body.metadata?.version || ""),
+        };
+      }
+
+      if (url.endsWith("/posts/post-1")) {
+        latestPostFetches += 1;
+        return {
+          json: createRemotePost(`${latestPostFetches}`),
+        };
+      }
+
+      if (url.includes("/categories") || url.includes("/tags")) {
+        return {
+          json: {
+            items: [],
+          },
+        };
+      }
+
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    await service.publishPost();
+
+    expect(postUpdateAttempts).toBe(2);
+    expect(postUpdateVersions).toEqual(["1", "2"]);
+    expect(draftUpdateAttempts).toBe(2);
+    expect(fileManager.processFrontMatter).toHaveBeenCalledTimes(1);
+  });
+
   test("publishes the provided markdown instead of rereading the local note", async () => {
     const note = createFile("post.md");
     const { app, metadataCache, vault } = createMockApp("local markdown ![Logo](logo.png)", note, []);
