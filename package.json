@@ -1,7 +1,7 @@
 {
   "name": "@halo-dev/obsidian-halo",
   "private": true,
-  "version": "1.1.1",
+  "version": "1.2.0",
   "type": "module",
   "description": "Halo's Obsidian integration supports publishing content to Halo sites",
   "main": "main.js",

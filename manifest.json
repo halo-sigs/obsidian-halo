@@ -1,7 +1,7 @@
 {
   "id": "halo",
   "name": "Halo",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "minAppVersion": "1.4.4",
   "description": "Halo's Obsidian integration supports publishing content to Halo sites",
   "author": "Ryan Wang",
