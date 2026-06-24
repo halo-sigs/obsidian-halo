@@ -146,6 +146,60 @@ function mockAttachmentUploads(...permalinks: string[]): void {
   });
 }
 
+function mockUpdatePostRequests(raw: string): void {
+  requestUrlMock().mockImplementation((request: RequestUrlParam) => {
+    const url = typeof request === "string" ? request : request.url;
+
+    if (url.endsWith("/posts/post-1")) {
+      return {
+        json: {
+          metadata: {
+            name: "post-1",
+          },
+          spec: {
+            categories: [],
+            cover: "",
+            excerpt: {
+              autoGenerate: true,
+              raw: "",
+            },
+            publish: false,
+            slug: "post-title",
+            tags: [],
+            title: "Post title",
+          },
+        },
+      };
+    }
+
+    if (url.endsWith("/posts/post-1/draft?patched=true")) {
+      return {
+        json: {
+          metadata: {
+            annotations: {
+              "content.halo.run/patched-content": "",
+              "content.halo.run/patched-raw": raw,
+            },
+          },
+          spec: {
+            rawType: "markdown",
+          },
+        },
+      };
+    }
+
+    if (url.includes("/categories") || url.includes("/tags")) {
+      return {
+        json: {
+          items: [],
+        },
+      };
+    }
+
+    throw new Error(`Unexpected request: ${url}`);
+  });
+}
+
 describe("HaloService.uploadImages", () => {
   beforeEach(() => {
     requestUrlMock().mockReset();
@@ -370,6 +424,133 @@ describe("HaloService.uploadImages", () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+});
+
+describe("HaloService.updatePost", () => {
+  beforeEach(() => {
+    requestUrlMock().mockReset();
+  });
+
+  test("restores cached local image links when image link replacement is disabled", async () => {
+    const note = createFile("post.md");
+    const logo = createFile("images/logo.png", 10, 100);
+    const spacedLogo = createFile("images/my logo.png", 20, 200);
+    const pastedImage = createFile("Pasted image 20260624125124.png", 40, 400);
+    const staleLogo = createFile("images/stale.png", 30, 300);
+    const remoteMarkdown = [
+      "![Logo](https://halo.example.com/uploads/logo.png)",
+      "![Spaced](https://halo.example.com/uploads/my%20logo.png)",
+      "![](https://halo.example.com/upload/Pasted%20image%2020260624125124.png)",
+      "![Stale](https://halo.example.com/uploads/stale.png)",
+      "![Unknown](https://halo.example.com/uploads/unknown.png)",
+    ].join("\n");
+    const { app, contents, metadataCache } = createMockApp("local markdown", note, [
+      logo,
+      spacedLogo,
+      pastedImage,
+      staleLogo,
+    ]);
+    const service = new HaloService(
+      app,
+      createSettings({
+        replaceImageLinks: false,
+        imageUploadCache: {
+          "https://halo.example.com": {
+            "images/logo.png": {
+              filePath: "images/logo.png",
+              mtime: 100,
+              permalink: "https://halo.example.com/uploads/logo.png",
+              size: 10,
+              updatedAt: 1,
+            },
+            "images/my logo.png": {
+              filePath: "images/my logo.png",
+              mtime: 200,
+              permalink: "https://halo.example.com/uploads/my logo.png",
+              size: 20,
+              updatedAt: 2,
+            },
+            "Pasted image 20260624125124.png": {
+              filePath: "Pasted image 20260624125124.png",
+              mtime: 400,
+              permalink: "https://halo.example.com/upload/Pasted image 20260624125124.png",
+              size: 40,
+              updatedAt: 3,
+            },
+            "images/stale.png": {
+              filePath: "images/stale.png",
+              mtime: 999,
+              permalink: "https://halo.example.com/uploads/stale.png",
+              size: 30,
+              updatedAt: 4,
+            },
+          },
+        },
+      }),
+      site,
+    );
+
+    metadataCache.getFileCache.mockImplementation(() => ({
+      frontmatter: {
+        halo: {
+          name: "post-1",
+          site: site.url,
+        },
+      },
+    }));
+    mockUpdatePostRequests(remoteMarkdown);
+
+    await service.updatePost();
+
+    expect(contents.get(note.path)).toBe(
+      [
+        "![[images/logo.png|Logo]]",
+        "![[images/my logo.png|Spaced]]",
+        "![[Pasted image 20260624125124.png]]",
+        "![Stale](https://halo.example.com/uploads/stale.png)",
+        "![Unknown](https://halo.example.com/uploads/unknown.png)",
+      ].join("\n"),
+    );
+  });
+
+  test("keeps remote image links when image link replacement is enabled", async () => {
+    const note = createFile("post.md");
+    const logo = createFile("images/logo.png", 10, 100);
+    const remoteMarkdown = "![Logo](https://halo.example.com/uploads/logo.png)";
+    const { app, contents, metadataCache } = createMockApp("local markdown", note, [logo]);
+    const service = new HaloService(
+      app,
+      createSettings({
+        replaceImageLinks: true,
+        imageUploadCache: {
+          "https://halo.example.com": {
+            "images/logo.png": {
+              filePath: "images/logo.png",
+              mtime: 100,
+              permalink: "https://halo.example.com/uploads/logo.png",
+              size: 10,
+              updatedAt: 1,
+            },
+          },
+        },
+      }),
+      site,
+    );
+
+    metadataCache.getFileCache.mockImplementation(() => ({
+      frontmatter: {
+        halo: {
+          name: "post-1",
+          site: site.url,
+        },
+      },
+    }));
+    mockUpdatePostRequests(remoteMarkdown);
+
+    await service.updatePost();
+
+    expect(contents.get(note.path)).toBe(remoteMarkdown);
   });
 });
 

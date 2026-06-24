@@ -438,7 +438,11 @@ class HaloService {
     const postCategories = await this.getCategoryDisplayNames(post.post.spec.categories);
     const postTags = await this.getTagDisplayNames(post.post.spec.tags);
 
-    await this.app.vault.modify(activeEditor.file, `${post.content.raw}`);
+    const raw = this.settings.replaceImageLinks
+      ? `${post.content.raw}`
+      : this.restoreCachedLocalImageLinks(`${post.content.raw}`);
+
+    await this.app.vault.modify(activeEditor.file, raw);
 
     this.app.fileManager.processFrontMatter(activeEditor.file, (frontmatter) => {
       frontmatter.title = post.post.spec.title;
@@ -635,6 +639,99 @@ class HaloService {
 
   private isSameImageFile(file: TFile, cacheEntry: ImageUploadCacheEntry): boolean {
     return cacheEntry.size === file.stat.size && cacheEntry.mtime === file.stat.mtime;
+  }
+
+  private restoreCachedLocalImageLinks(markdown: string): string {
+    const markdownImageRegex = /!\[[^\]\n]*\]\(([^)\n]+)\)/g;
+    const replacements: { start: number; end: number; value: string }[] = [];
+    let match = markdownImageRegex.exec(markdown);
+
+    while (match !== null) {
+      const target = this.parseMarkdownImageTarget(match[1]);
+
+      if (!target || !this.isRemotePath(target.path)) {
+        match = markdownImageRegex.exec(markdown);
+        continue;
+      }
+
+      const localPath = this.getCachedLocalImagePath(target.path);
+
+      if (!localPath) {
+        match = markdownImageRegex.exec(markdown);
+        continue;
+      }
+
+      replacements.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        value: this.formatWikiImageEmbed(localPath, match[0]),
+      });
+
+      match = markdownImageRegex.exec(markdown);
+    }
+
+    return replacements
+      .sort((a, b) => b.start - a.start)
+      .reduce((updatedMarkdown, replacement) => {
+        return updatedMarkdown.slice(0, replacement.start) + replacement.value + updatedMarkdown.slice(replacement.end);
+      }, markdown);
+  }
+
+  private getCachedLocalImagePath(permalink: string): string | undefined {
+    const siteCache = this.settings.imageUploadCache[this.site.url] ?? {};
+    const normalizedPermalink = this.normalizePermalink(permalink);
+
+    for (const cacheEntry of Object.values(siteCache)) {
+      if (this.normalizePermalink(cacheEntry.permalink) !== normalizedPermalink) {
+        continue;
+      }
+
+      const file = this.app.vault.getAbstractFileByPath(cacheEntry.filePath);
+
+      if (file instanceof TFile && this.isImageFile(file) && this.isSameImageFile(file, cacheEntry)) {
+        return cacheEntry.filePath;
+      }
+    }
+
+    return undefined;
+  }
+
+  private normalizePermalink(permalink: string): string {
+    const absolutePermalink =
+      permalink.startsWith("http://") || permalink.startsWith("https://")
+        ? permalink
+        : `${this.site.url}${permalink.startsWith("/") ? "" : "/"}${permalink}`;
+
+    try {
+      const url = new URL(absolutePermalink);
+      return `${url.origin}${decodeURI(url.pathname)}${decodeURI(url.search)}${decodeURI(url.hash)}`;
+    } catch {
+      try {
+        return decodeURI(absolutePermalink);
+      } catch {
+        return absolutePermalink;
+      }
+    }
+  }
+
+  private formatWikiImageEmbed(path: string, markdownImage: string): string {
+    const alt = this.getMarkdownImageAlt(markdownImage);
+
+    if (!alt) {
+      return `![[${path}]]`;
+    }
+
+    return `![[${path}|${alt.replace(/\|/g, "\\|")}]]`;
+  }
+
+  private getMarkdownImageAlt(markdownImage: string): string {
+    const altEnd = markdownImage.indexOf("](");
+
+    if (!markdownImage.startsWith("![") || altEnd <= 2) {
+      return "";
+    }
+
+    return markdownImage.slice(2, altEnd).replace(/\\]/g, "]");
   }
 
   public async getCategoryNames(displayNames: string[]): Promise<string[]> {
