@@ -216,7 +216,8 @@ describe("HaloService.uploadImages", () => {
       "[Normal link](images/logo.png)",
     ].join("\n");
     const { contents, vault, app } = createMockApp(markdown, note, [logo, banner]);
-    const service = new HaloService(app, createSettings(), site);
+    const settings = createSettings();
+    const service = new HaloService(app, settings, site);
 
     mockAttachmentUploads("/uploads/logo.png", "/uploads/banner.png");
 
@@ -240,6 +241,15 @@ describe("HaloService.uploadImages", () => {
     expect(contents.get(note.path)).toBe(expectedMarkdown);
     expect(vault.modify).toHaveBeenCalledTimes(1);
     expect(requestUrlMock().mock.calls).toHaveLength(2);
+    expect(settings.imageUploadCache["https://halo.example.com"]["images/logo.png"]).toMatchObject({
+      linkType: "markdown",
+      permalink: "https://halo.example.com/uploads/logo.png",
+    });
+    expect(settings.imageUploadCache["https://halo.example.com"]["images/banner.png"]).toMatchObject({
+      linkType: "wiki",
+      permalink: "https://halo.example.com/uploads/banner.png",
+      wikiAlias: "Hero",
+    });
   });
 
   test("leaves remote-only markdown from Halo updates untouched", async () => {
@@ -437,11 +447,13 @@ describe("HaloService.updatePost", () => {
     const logo = createFile("images/logo.png", 10, 100);
     const spacedLogo = createFile("images/my logo.png", 20, 200);
     const pastedImage = createFile("Pasted image 20260624125124.png", 40, 400);
+    const wikiImage = createFile("images/wiki image.png", 50, 500);
     const staleLogo = createFile("images/stale.png", 30, 300);
     const remoteMarkdown = [
       "![Logo](https://halo.example.com/uploads/logo.png)",
       "![Spaced](https://halo.example.com/uploads/my%20logo.png)",
       "![](https://halo.example.com/upload/Pasted%20image%2020260624125124.png)",
+      "![[https://halo.example.com/uploads/wiki%20image.png|Remote Alias]]",
       "![Stale](https://halo.example.com/uploads/stale.png)",
       "![Unknown](https://halo.example.com/uploads/unknown.png)",
     ].join("\n");
@@ -449,6 +461,7 @@ describe("HaloService.updatePost", () => {
       logo,
       spacedLogo,
       pastedImage,
+      wikiImage,
       staleLogo,
     ]);
     const service = new HaloService(
@@ -459,6 +472,7 @@ describe("HaloService.updatePost", () => {
           "https://halo.example.com": {
             "images/logo.png": {
               filePath: "images/logo.png",
+              linkType: "markdown",
               mtime: 100,
               permalink: "https://halo.example.com/uploads/logo.png",
               size: 10,
@@ -466,6 +480,7 @@ describe("HaloService.updatePost", () => {
             },
             "images/my logo.png": {
               filePath: "images/my logo.png",
+              linkType: "markdown",
               mtime: 200,
               permalink: "https://halo.example.com/uploads/my logo.png",
               size: 20,
@@ -478,12 +493,21 @@ describe("HaloService.updatePost", () => {
               size: 40,
               updatedAt: 3,
             },
+            "images/wiki image.png": {
+              filePath: "images/wiki image.png",
+              linkType: "wiki",
+              mtime: 500,
+              permalink: "https://halo.example.com/uploads/wiki image.png",
+              size: 50,
+              updatedAt: 4,
+              wikiAlias: "Original Alias",
+            },
             "images/stale.png": {
               filePath: "images/stale.png",
               mtime: 999,
               permalink: "https://halo.example.com/uploads/stale.png",
               size: 30,
-              updatedAt: 4,
+              updatedAt: 5,
             },
           },
         },
@@ -505,9 +529,10 @@ describe("HaloService.updatePost", () => {
 
     expect(contents.get(note.path)).toBe(
       [
-        "![[images/logo.png|Logo]]",
-        "![[images/my logo.png|Spaced]]",
+        "![Logo](images/logo.png)",
+        "![Spaced](<images/my logo.png>)",
         "![[Pasted image 20260624125124.png]]",
+        "![[images/wiki image.png|Original Alias]]",
         "![Stale](https://halo.example.com/uploads/stale.png)",
         "![Unknown](https://halo.example.com/uploads/unknown.png)",
       ].join("\n"),

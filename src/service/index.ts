@@ -8,9 +8,11 @@ import { type HaloSetting, type HaloSite, type ImageUploadCacheEntry, isSameSite
 
 interface LocalImageReference {
   file: TFile;
+  linkType: "markdown" | "wiki";
   start: number;
   end: number;
   replacement: (permalink: string) => string;
+  wikiAlias?: string;
 }
 
 interface MarkdownImageTarget {
@@ -535,10 +537,11 @@ class HaloService {
           permalink = this.getCachedImagePermalink(imageReference.file);
 
           if (permalink) {
+            this.cacheImageReference(imageReference.file, imageReference);
             reusedCount++;
           } else {
             permalink = await this.uploadImage(imageReference.file);
-            this.cacheImagePermalink(imageReference.file, permalink);
+            this.cacheImagePermalink(imageReference.file, permalink, imageReference);
             uploadedCount++;
           }
 
@@ -625,14 +628,33 @@ class HaloService {
     return cacheEntry.permalink;
   }
 
-  private cacheImagePermalink(file: TFile, permalink: string): void {
+  private cacheImagePermalink(file: TFile, permalink: string, imageReference: LocalImageReference): void {
     const siteCache = this.settings.imageUploadCache[this.site.url] ?? {};
     siteCache[file.path] = {
       filePath: file.path,
+      linkType: imageReference.linkType,
       size: file.stat.size,
       mtime: file.stat.mtime,
       permalink,
       updatedAt: Date.now(),
+      wikiAlias: imageReference.wikiAlias,
+    };
+    this.settings.imageUploadCache[this.site.url] = siteCache;
+  }
+
+  private cacheImageReference(file: TFile, imageReference: LocalImageReference): void {
+    const siteCache = this.settings.imageUploadCache[this.site.url] ?? {};
+    const cacheEntry = siteCache[file.path];
+
+    if (!cacheEntry) {
+      return;
+    }
+
+    siteCache[file.path] = {
+      ...cacheEntry,
+      linkType: imageReference.linkType,
+      updatedAt: Date.now(),
+      wikiAlias: imageReference.wikiAlias,
     };
     this.settings.imageUploadCache[this.site.url] = siteCache;
   }
@@ -643,6 +665,7 @@ class HaloService {
 
   private restoreCachedLocalImageLinks(markdown: string): string {
     const markdownImageRegex = /!\[[^\]\n]*\]\(([^)\n]+)\)/g;
+    const wikiEmbedRegex = /!\[\[([^\]\n]+)\]\]/g;
     const replacements: { start: number; end: number; value: string }[] = [];
     let match = markdownImageRegex.exec(markdown);
 
@@ -654,20 +677,57 @@ class HaloService {
         continue;
       }
 
-      const localPath = this.getCachedLocalImagePath(target.path);
+      const cacheEntry = this.getCachedLocalImageEntry(target.path);
 
-      if (!localPath) {
+      if (!cacheEntry) {
         match = markdownImageRegex.exec(markdown);
+        continue;
+      }
+
+      if (cacheEntry.linkType === "markdown") {
+        const targetOffset = match[0].indexOf(match[1]) + target.start;
+
+        replacements.push({
+          start: match.index + targetOffset,
+          end: match.index + targetOffset + target.rawPath.length,
+          value: this.formatMarkdownImagePath(cacheEntry.filePath),
+        });
+      } else {
+        replacements.push({
+          start: match.index,
+          end: match.index + match[0].length,
+          value: this.formatWikiImageEmbed(cacheEntry, this.getMarkdownImageAlt(match[0])),
+        });
+      }
+
+      match = markdownImageRegex.exec(markdown);
+    }
+
+    match = wikiEmbedRegex.exec(markdown);
+
+    while (match !== null) {
+      const linkText = match[1].trim();
+      const linkPath = this.decodeMarkdownPath(getLinkpath(linkText));
+
+      if (!this.isRemotePath(linkPath)) {
+        match = wikiEmbedRegex.exec(markdown);
+        continue;
+      }
+
+      const cacheEntry = this.getCachedLocalImageEntry(linkPath);
+
+      if (!cacheEntry) {
+        match = wikiEmbedRegex.exec(markdown);
         continue;
       }
 
       replacements.push({
         start: match.index,
         end: match.index + match[0].length,
-        value: this.formatWikiImageEmbed(localPath, match[0]),
+        value: this.formatWikiImageEmbed(cacheEntry, this.getWikiImageAlias(linkText)),
       });
 
-      match = markdownImageRegex.exec(markdown);
+      match = wikiEmbedRegex.exec(markdown);
     }
 
     return replacements
@@ -677,7 +737,7 @@ class HaloService {
       }, markdown);
   }
 
-  private getCachedLocalImagePath(permalink: string): string | undefined {
+  private getCachedLocalImageEntry(permalink: string): ImageUploadCacheEntry | undefined {
     const siteCache = this.settings.imageUploadCache[this.site.url] ?? {};
     const normalizedPermalink = this.normalizePermalink(permalink);
 
@@ -689,11 +749,19 @@ class HaloService {
       const file = this.app.vault.getAbstractFileByPath(cacheEntry.filePath);
 
       if (file instanceof TFile && this.isImageFile(file) && this.isSameImageFile(file, cacheEntry)) {
-        return cacheEntry.filePath;
+        return cacheEntry;
       }
     }
 
     return undefined;
+  }
+
+  private formatMarkdownImagePath(path: string): string {
+    if (/[\s()<>]/.test(path)) {
+      return `<${path}>`;
+    }
+
+    return path;
   }
 
   private normalizePermalink(permalink: string): string {
@@ -714,14 +782,14 @@ class HaloService {
     }
   }
 
-  private formatWikiImageEmbed(path: string, markdownImage: string): string {
-    const alt = this.getMarkdownImageAlt(markdownImage);
+  private formatWikiImageEmbed(cacheEntry: ImageUploadCacheEntry, fallbackAlias = ""): string {
+    const alias = cacheEntry.wikiAlias || fallbackAlias;
 
-    if (!alt) {
-      return `![[${path}]]`;
+    if (!alias) {
+      return `![[${cacheEntry.filePath}]]`;
     }
 
-    return `![[${path}|${alt.replace(/\|/g, "\\|")}]]`;
+    return `![[${cacheEntry.filePath}|${alias.replace(/\|/g, "\\|")}]]`;
   }
 
   private getMarkdownImageAlt(markdownImage: string): string {
@@ -859,6 +927,7 @@ class HaloService {
 
       references.push({
         file,
+        linkType: "markdown",
         start: match.index + targetOffset,
         end: match.index + targetOffset + target.rawPath.length,
         replacement: (permalink) => permalink,
@@ -887,9 +956,11 @@ class HaloService {
 
       references.push({
         file,
+        linkType: "wiki",
         start: match.index,
         end: match.index + match[0].length,
         replacement: (permalink) => `![${this.getWikiImageAlt(linkText)}](${permalink})`,
+        wikiAlias: this.getWikiImageAlias(linkText),
       });
 
       match = wikiEmbedRegex.exec(markdown);
@@ -972,13 +1043,17 @@ class HaloService {
   }
 
   private getWikiImageAlt(linkText: string): string {
-    const alias = linkText.split("|").slice(1).join("|").trim();
+    const alias = this.getWikiImageAlias(linkText);
 
     if (!alias || /^\d+(x\d+)?$/.test(alias)) {
       return "";
     }
 
     return alias.replace(/]/g, "\\]");
+  }
+
+  private getWikiImageAlias(linkText: string): string {
+    return linkText.split("|").slice(1).join("|").trim();
   }
 
   private createMultipartBody(

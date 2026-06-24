@@ -12,10 +12,12 @@ export interface HaloSite {
 
 export interface ImageUploadCacheEntry {
   filePath: string;
+  linkType?: "markdown" | "wiki";
   size: number;
   mtime: number;
   permalink: string;
   updatedAt: number;
+  wikiAlias?: string;
 }
 
 export interface HaloSetting {
